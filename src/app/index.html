@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>SEAIF – 성남시행사 AI 파인더</title>
+  <title>KAIEF – 대한민국 행사 AI 파인더</title>
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Material 3 Expressive-friendly fonts -->
@@ -73,6 +73,7 @@
 
       --gradient-primary: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #A855F7 100%);
       --gradient-surface: linear-gradient(180deg, var(--md-sys-color-surface) 0%, var(--md-sys-color-surface-container-low) 100%);
+      --view-height: calc(100dvh - 180px);
     }
 
     [data-theme="dark"] {
@@ -129,6 +130,13 @@
     .app-bar.compact .brand-title .large { display:none; }
     .app-bar.compact .brand-title .small { display:inline-block; }
 
+    .app-controls { margin-top: 16px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; }
+    .tab-group { display:flex; gap:4px; padding:4px; border-radius: var(--shape-corner-full); background: var(--md-sys-color-surface-container-low); border:1px solid var(--md-sys-color-outline-variant); }
+    .tab { border:0; background:transparent; border-radius: var(--shape-corner-full); padding:8px 16px; font-weight:600; font-size:14px; color: color-mix(in oklab, var(--md-sys-color-on-surface) 75%, transparent); cursor:pointer; transition: background var(--dur-quick) var(--easing-standard), color var(--dur-quick) var(--easing-standard); }
+    .tab:hover { background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface); }
+    .tab[aria-selected="true"], .tab.active { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); box-shadow: var(--elevation-1); }
+    .language-toggle { font-size:13px; font-weight:600; padding:8px 14px; }
+
     .icon-button { width: 40px; height: 40px; border-radius: var(--shape-corner-lg); display:grid; place-items:center; border:1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface-container-low); color: var(--md-sys-color-on-surface); transition: transform var(--dur-quick) var(--easing-standard), background var(--dur-quick) var(--easing-standard); }
     .icon-button:hover { transform: translateY(-1px); background: var(--md-sys-color-surface-container); }
     .icon-button:active { transform: scale(.97); }
@@ -138,13 +146,17 @@
     .popover.open { opacity:1; transform: scale(1); pointer-events:auto; }
     .chip { padding:8px 14px; border-radius: var(--shape-corner-full); font-size:13px; font-weight:500; cursor:pointer; border:1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface-container-low); color: var(--md-sys-color-on-surface); transition: transform var(--dur-quick) var(--easing-standard), background var(--dur-quick) var(--easing-standard), border-color var(--dur-quick) var(--easing-standard); }
     .chip:hover{ transform: translateY(-1px); background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); border-color: var(--md-sys-color-primary); }
+    .chip[data-active="true"]{ background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); border-color: var(--md-sys-color-primary); box-shadow: var(--elevation-2); }
 
-    .chat { height: calc(100dvh - 72px); display:flex; flex-direction:column; background: var(--md-sys-color-surface); }
+    .view { display:none; }
+    .view.active { display:flex; }
+    .chat { height: var(--view-height); display:flex; flex-direction:column; background: var(--md-sys-color-surface); }
     .chat-list { flex:1; padding: 14px 20px; overflow-y:auto; scroll-behavior:smooth; }
     .chat-list::-webkit-scrollbar{ width:6px; } .chat-list::-webkit-scrollbar-thumb{ background: var(--md-sys-color-outline); border-radius:3px; }
 
     .bubble{ max-width:82%; line-height:1.55; font-size:15px; padding:14px 16px; border-radius: var(--shape-corner-xl); position:relative; animation: slideUp var(--dur-standard) var(--easing-emphasized); }
     .bubble.assistant{ background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface); border:1px solid var(--md-sys-color-outline-variant); border-bottom-left-radius: var(--shape-corner-sm); }
+    .assistant-header{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
     .bubble.user{ background: var(--gradient-primary); color: var(--md-sys-color-on-primary); margin-left:auto; box-shadow: var(--elevation-2); border-bottom-right-radius: var(--shape-corner-sm); }
     @keyframes slideUp { from { opacity:0; transform: translateY(16px) scale(.98); } to { opacity:1; transform: translateY(0) scale(1); } }
 
@@ -177,6 +189,24 @@
     .mini-fab:hover .fab-label { opacity:1; }
 
     .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; padding: 0 6px; }
+    .chip-label{ font-size:12px; font-weight:600; opacity:.7; margin-bottom:6px; padding:0 6px; }
+
+    .feed { height: var(--view-height); display:flex; flex-direction:column; background: var(--md-sys-color-surface); }
+    .feed-header { padding: 18px 20px 12px; border-bottom:1px solid var(--md-sys-color-outline-variant); }
+    .feed-header h2 { font-size:18px; font-weight:700; letter-spacing:-0.01em; }
+    .feed-header p { margin-top:4px; font-size:13px; line-height:1.6; opacity:.8; }
+    .feed-filter { padding: 12px 20px; border-bottom:1px solid var(--md-sys-color-outline-variant); display:flex; flex-direction:column; gap:8px; }
+    .feed-filter-label { font-size:12px; font-weight:600; opacity:.7; }
+    .feed-filter-chips { display:flex; flex-wrap:wrap; gap:8px; }
+    .feed-list { flex:1; overflow-y:auto; padding: 12px 20px 24px; display:flex; flex-direction:column; gap:16px; }
+    .feed-message { padding: 16px 20px; font-size:13px; opacity:.8; }
+    .feed-card { border:1px solid var(--md-sys-color-outline-variant); border-radius: var(--shape-corner-xl); background: var(--md-sys-color-surface-container-low); padding: 18px; box-shadow: var(--elevation-1); transition: transform var(--dur-quick) var(--easing-standard), box-shadow var(--dur-quick) var(--easing-standard); }
+    .feed-card:hover { transform: translateY(-2px); box-shadow: var(--elevation-3); }
+    .feed-card h3 { font-size:17px; font-weight:700; letter-spacing:-0.01em; }
+    .feed-meta { display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:10px; font-size:13px; opacity:.85; }
+    .feed-desc { margin-top:12px; font-size:14px; line-height:1.6; }
+    .feed-footer { margin-top:14px; display:flex; flex-wrap:wrap; gap:8px 14px; font-size:13px; opacity:.8; align-items:center; }
+    .feed-card a { color: var(--md-sys-color-primary); font-weight:600; }
 
     @keyframes blink { 0%,100%{opacity:.25} 50%{opacity:1} }
     .dots>span{ display:inline-block; width:6px; height:6px; border-radius:999px; background: currentColor; animation: blink 1s infinite; }
@@ -194,8 +224,8 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" role="img"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
           </div>
           <div class="brand-title">
-            <span class="large">성남시행사 AI 파인더</span>
-            <span class="small">SEAIF</span>
+            <span class="large" data-i18n="brandLarge">대한민국 행사 AI 파인더</span>
+            <span class="small" data-i18n="brandSmall">KAIEF</span>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -207,6 +237,14 @@
             <svg id="moon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/></svg>
           </button>
         </div>
+      </div>
+
+      <div class="app-controls">
+        <div class="tab-group" role="tablist">
+          <button id="chatTab" type="button" class="tab active" data-view="chat" role="tab" aria-selected="true" aria-controls="chatView" data-i18n="navChat">AI 챗봇</button>
+          <button id="feedTab" type="button" class="tab" data-view="feed" role="tab" aria-selected="false" aria-controls="feedView" data-i18n="navFeed">행사 피드</button>
+        </div>
+        <button id="languageToggle" type="button" class="chip language-toggle" aria-label="언어 전환">EN</button>
       </div>
 
       <div id="brandPanel" class="popover">
@@ -226,23 +264,23 @@
       </div>
     </header>
 
-    <main class="chat" id="chat">
+    <main class="chat view active" id="chatView" role="tabpanel" aria-labelledby="chatTab">
       <div id="chatList" class="chat-list">
-        <div class="flex justify-start"><div class="bubble assistant">
-          <div class="flex items-center gap-2 mb-2">
-            <div class="w-6 h-6 rounded-full" style="background:linear-gradient(90deg,#34D399,#06B6D4)"></div>
-            <span class="text-xs opacity-70 font-medium">AI 어시스턴트</span>
+        <div class="flex justify-start">
+          <div class="bubble assistant" id="introBubble">
+            <div class="assistant-header">
+              <div class="w-6 h-6 rounded-full" style="background:linear-gradient(90deg,#34D399,#06B6D4)"></div>
+              <span id="introBadge" class="text-xs opacity-70 font-medium">AI 어시스턴트</span>
+            </div>
+            <div id="introText" class="leading-6 text-[15px]">안녕하세요! 🎉<br/>대한민국의 다양한 행사와 이벤트 정보를 찾아드립니다.</div>
+            <div id="introHint" class="text-xs opacity-70 mt-3">관심 키워드를 누르면 질문이 입력돼요.</div>
           </div>
-          안녕하세요! 🎉<br/>성남시의 다양한 행사와 이벤트 정보를 찾아드립니다. 궁금한 점을 물어보세요!
-        </div></div>
+        </div>
       </div>
 
       <div class="composer">
-        <div class="chips" id="chips">
-          <button class="chip" data-text="이번 주말 성남 행사">🎪 주말 행사</button>
-          <button class="chip" data-text="성남 문화행사">🎭 문화행사</button>
-          <button class="chip" data-text="성남시 축제">🎊 축제 정보</button>
-        </div>
+        <div class="chip-label" id="chipLabel" data-i18n="chipLabel">빠른 질문</div>
+        <div class="chips" id="chips"></div>
         <div class="composer-row">
           <div id="moreWrap" class="relative">
             <button id="moreBtn" class="icon-button" aria-label="추가 옵션">
@@ -269,88 +307,362 @@
           </div>
           <button id="send" class="send" data-compact="true" aria-label="메시지 전송">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.4-8.4c.5-.2.5-.9 0-1.2L3.4 2.4c-.5-.2-1 .2-1 .7v5.5c0 .3.2.6.5.6l8.6.9c.2 0 .2.2 0 .3l-8.6.9c-.3 0-.5.3-.5.6V19.7c0 .5.4 1 1 .7z"/></svg>
-            <span class="label">전송</span>
+            <span class="label" data-i18n="sendLabel">전송</span>
           </button>
         </div>
       </div>
     </main>
+
+    <section class="feed view" id="feedView" role="tabpanel" aria-labelledby="feedTab">
+      <div class="feed-header">
+        <h2 data-i18n="feedTitle">실시간 행사 피드</h2>
+        <p data-i18n="feedDescription">국립 문화·예술 기관의 최신 행사 소식을 모아서 제공합니다.</p>
+      </div>
+      <div class="feed-filter">
+        <span class="feed-filter-label" data-i18n="feedFilterLabel">주요 기관 바로보기</span>
+        <div class="feed-filter-chips" id="feedFilters"></div>
+      </div>
+      <div id="feedMessage" class="feed-message" aria-live="polite"></div>
+      <div id="feedList" class="feed-list" role="list"></div>
+      <div id="feedFootnote" class="feed-message text-xs opacity-70"></div>
+    </section>
   </div>
 
-  <script type="module">
+    <script type="module">
     import { argbFromHex, themeFromSourceColor, applyTheme } from "https://esm.run/@material/material-color-utilities";
 
-    const THEME_KEY = 'seaif_theme';
+    const STORAGE_KEYS = {
+      theme: 'kaief_theme',
+      seed: 'kaief_seed',
+      lang: 'kaief_lang'
+    };
+
+    const translations = {
+      ko: {
+        brandLarge: "대한민국 행사 AI 파인더",
+        brandSmall: "KAIEF",
+        paletteAria: "브랜드 색 설정",
+        themeAria: "테마 전환",
+        navChat: "AI 챗봇",
+        navFeed: "행사 피드",
+        languageAria: "언어 전환",
+        documentTitle: "KAIEF – 대한민국 행사 AI 파인더",
+        assistantBadge: "AI 어시스턴트",
+        assistantIntro: "안녕하세요! 🎉<br/>대한민국의 주요 문화·예술 행사를 실시간으로 찾아드립니다. 일정이나 관심사를 알려주세요!",
+        assistantSuggestion: "관심 키워드를 누르면 질문이 입력돼요.",
+        chipLabel: "빠른 질문",
+        placeholder: "무엇이든 물어보세요...",
+        sendLabel: "전송",
+        sendAria: "메시지 전송",
+        moreAria: "추가 옵션",
+        typingLabel: "입력 중...",
+        keywordTitle: "🔎 추출된 키워드",
+        noEvent: "관련된 행사를 찾지 못했어요. 키워드를 조금 바꿔보시겠어요? (예: 날짜/지역/분야 추가)",
+        errorMessage: "요청 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
+        feedTitle: "실시간 행사 피드",
+        feedDescription: "국립 문화·예술 기관의 최신 행사 소식을 모아서 제공합니다.",
+        feedFilterLabel: "주요 기관 바로보기",
+        feedLoading: "행사 데이터를 불러오는 중이에요...",
+        feedEmpty: "현재 조건에 맞는 행사가 없습니다. 필터를 변경해보세요.",
+        feedError: "행사 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.",
+        feedFootnote: "데이터 출처: 문화체육관광부 산하 국립기관 실시간 수집",
+        chips: [
+          { label: "🎪 이번 주말 추천", prompt: "이번 주말에 갈 만한 전국 문화 행사를 추천해줘." },
+          { label: "🎨 미술 전시 찾기", prompt: "국립현대미술관에서 진행 중인 전시를 알려줘." },
+          { label: "📚 도서관 프로그램", prompt: "국립중앙도서관에서 참여할 수 있는 체험이나 강연이 있을까?" },
+          { label: "🎵 국악 공연", prompt: "국립국악원에서 곧 진행되는 공연을 알려줘." }
+        ],
+        eventLabels: {
+          category: "분류",
+          schedule: "일정",
+          location: "장소",
+          host: "주관",
+          status: "상태",
+          cost: "참가비"
+        },
+        actions: {
+          viewDetail: "자세히 보기"
+        },
+        costFree: "무료",
+        unknownTitle: "제목 미상",
+        unknownValue: "정보 없음"
+      },
+      en: {
+        brandLarge: "Korea Event AI Finder",
+        brandSmall: "KAIEF",
+        paletteAria: "Set brand color",
+        themeAria: "Toggle theme",
+        navChat: "AI Chatbot",
+        navFeed: "Event feed",
+        languageAria: "Switch language",
+        documentTitle: "KAIEF – Korea Event AI Finder",
+        assistantBadge: "AI Assistant",
+        assistantIntro: "Hello! 🎉<br/>I surface cultural and arts events across Korea in real time. Tell me about your schedule or interests!",
+        assistantSuggestion: "Tap a quick prompt to pre-fill your question.",
+        chipLabel: "Quick prompts",
+        placeholder: "Ask anything about events...",
+        sendLabel: "Send",
+        sendAria: "Send message",
+        moreAria: "More options",
+        typingLabel: "Typing...",
+        keywordTitle: "🔎 Extracted keywords",
+        noEvent: "I couldn't find a matching event. Try adding date, region, or theme keywords.",
+        errorMessage: "Something went wrong. Please try again in a moment.",
+        feedTitle: "Live event feed",
+        feedDescription: "Fresh cultural and arts programs curated from national institutions across Korea.",
+        feedFilterLabel: "Featured institutions",
+        feedLoading: "Loading event data...",
+        feedEmpty: "No events match the current filter. Try another option.",
+        feedError: "Unable to load event data right now. Please try again later.",
+        feedFootnote: "Sources: Ministry of Culture, Sports and Tourism national institutions",
+        chips: [
+          { label: "🎪 Weekend picks", prompt: "What cultural events this weekend are worth visiting around Korea?" },
+          { label: "🎨 Exhibition finder", prompt: "Show me exhibitions currently running at the National Museum of Modern and Contemporary Art." },
+          { label: "📚 Library programs", prompt: "Are there any workshops or lectures at the National Library of Korea?" },
+          { label: "🎵 Gugak performance", prompt: "Which performances are coming up at the National Gugak Center?" }
+        ],
+        eventLabels: {
+          category: "Category",
+          schedule: "Schedule",
+          location: "Location",
+          host: "Organizer",
+          status: "Status",
+          cost: "Admission"
+        },
+        actions: {
+          viewDetail: "View details"
+        },
+        costFree: "Free",
+        unknownTitle: "Untitled event",
+        unknownValue: "Not available"
+      }
+    };
+
+    const feedFilterOptions = [
+      { id: 'all', label: { ko: '전체', en: 'All' } },
+      { id: 'nmok', label: { ko: '국립중앙박물관', en: 'National Museum of Korea' }, match: ['국립중앙박물관'] },
+      { id: 'nlib', label: { ko: '국립중앙도서관', en: 'National Library of Korea' }, match: ['국립중앙도서관'] },
+      { id: 'mmca', label: { ko: '국립현대미술관', en: 'MMCA' }, match: ['국립현대미술관'] },
+      { id: 'gugak', label: { ko: '국립국악원', en: 'National Gugak Center' }, match: ['국립국악원'] },
+      { id: 'folk', label: { ko: '국립민속박물관', en: 'National Folk Museum' }, match: ['국립민속박물관'] }
+    ];
+
     const root = document.documentElement;
     const appBar = document.getElementById('appBar');
     const themeToggle = document.getElementById('themeToggle');
     const sun = document.getElementById('sun');
     const moon = document.getElementById('moon');
-
-    let currentSeed = localStorage.getItem('seaif_seed') || '#6366F1';
-
-    function isDark(){ return root.getAttribute('data-theme') === 'dark'; }
-
-    function applyThemeFromSeed(hex){
-      try {
-        const theme = themeFromSourceColor(argbFromHex(hex));
-        applyTheme(theme, { target: root, dark: isDark() });
-        document.documentElement.style.setProperty('--gradient-primary', `linear-gradient(135deg, var(--md-sys-color-primary) 0%, color-mix(in oklab, var(--md-sys-color-primary) 85%, #ffffff) 50%, color-mix(in oklab, var(--md-sys-color-primary) 70%, #ffffff) 100%)`);
-        currentSeed = hex;
-        localStorage.setItem('seaif_seed', hex);
-      } catch(e) { console.warn('Dynamic color apply failed', e); }
-    }
-
-    function applyThemeMode(theme){
-      root.setAttribute('data-theme', theme);
-      localStorage.setItem(THEME_KEY, theme);
-      const dark = theme === 'dark';
-      sun.style.display = dark ? 'none':'block';
-      moon.style.display = dark ? 'block':'none';
-      applyThemeFromSeed(currentSeed);
-    }
-
-    applyThemeMode(localStorage.getItem(THEME_KEY) || 'light');
-    applyThemeFromSeed(currentSeed);
-
-    themeToggle.addEventListener('click',()=>{ applyThemeMode(isDark() ? 'light' : 'dark'); });
-
-    const chatList = document.getElementById('chatList');
-    chatList.addEventListener('scroll', ()=>{ if (chatList.scrollTop > 6) appBar.classList.add('compact'); else appBar.classList.remove('compact'); });
-
     const paletteBtn = document.getElementById('paletteBtn');
     const brandPanel = document.getElementById('brandPanel');
     const customSeed = document.getElementById('customSeed');
     const customSeedHex = document.getElementById('customSeedHex');
     const applySeed = document.getElementById('applySeed');
-
-    function togglePanel(){ brandPanel.classList.toggle('open'); }
-    paletteBtn.addEventListener('click', (e)=>{ e.stopPropagation(); togglePanel(); });
-    document.addEventListener('click', (e)=>{ if(!brandPanel.contains(e.target) && e.target !== paletteBtn){ brandPanel.classList.remove('open'); }});
-
-    brandPanel.addEventListener('click', (e)=>{ const btn = e.target.closest('.chip'); if(btn && btn.dataset.seed){ customSeed.value = btn.dataset.seed; customSeedHex.value = btn.dataset.seed; applyThemeFromSeed(btn.dataset.seed); }});
-    customSeed.addEventListener('input', ()=>{ customSeedHex.value = customSeed.value; });
-    customSeedHex.addEventListener('input', ()=>{ if(/^#([0-9a-fA-F]{6})$/.test(customSeedHex.value)) customSeed.value = customSeedHex.value; });
-    applySeed.addEventListener('click', ()=>{ if(/^#([0-9a-fA-F]{6})$/.test(customSeed.value)) applyThemeFromSeed(customSeed.value); });
-
+    const languageToggle = document.getElementById('languageToggle');
+    const tabButtons = document.querySelectorAll('.tab-group [data-view]');
+    const chatView = document.getElementById('chatView');
+    const feedView = document.getElementById('feedView');
+    const chatList = document.getElementById('chatList');
+    const feedList = document.getElementById('feedList');
+    const feedMessage = document.getElementById('feedMessage');
+    const feedFootnote = document.getElementById('feedFootnote');
+    const feedFiltersEl = document.getElementById('feedFilters');
+    const chips = document.getElementById('chips');
+    const chipLabel = document.getElementById('chipLabel');
     const input = document.getElementById('input');
     const send = document.getElementById('send');
-    const chips = document.getElementById('chips');
+    const moreBtn = document.getElementById('moreBtn');
+    const moreWrap = document.getElementById('moreWrap');
+    const fabDial = document.getElementById('fabDial');
+    const introBadge = document.getElementById('introBadge');
+    const introText = document.getElementById('introText');
+    const introHint = document.getElementById('introHint');
 
-    function escapeHTML(str){ return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[m])); }
+    let currentLang = localStorage.getItem(STORAGE_KEYS.lang) === 'en' ? 'en' : 'ko';
+    let currentSeed = localStorage.getItem(STORAGE_KEYS.seed) || '#6366F1';
+    let currentView = 'chat';
+    let dialOpen = false;
+    let typingEl = null;
+    let feedLoaded = false;
+    let cachedEvents = [];
+    let activeFeedFilter = 'all';
 
-    function updateSend(){
-      const hasText = input.value.trim().length > 0;
-      send.setAttribute('data-compact', hasText ? 'false' : 'true');
-
-      const labelEl = send.querySelector('.label');
-      if (labelEl) labelEl.setAttribute('aria-hidden', hasText ? 'false' : 'true');
+    function isDark() {
+      return root.getAttribute('data-theme') === 'dark';
     }
-    input.addEventListener('input', updateSend);
-    input.addEventListener('keydown', (e)=>{ if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); sendMessage(); } });
-    send.addEventListener('click', sendMessage);
-    chips.addEventListener('click', (e)=>{ const btn = e.target.closest('.chip'); if(!btn) return; input.value = btn.dataset.text || ''; updateSend(); input.focus(); });
 
-    function addBubble(role, html){
+    function applyThemeFromSeed(hex) {
+      try {
+        const theme = themeFromSourceColor(argbFromHex(hex));
+        applyTheme(theme, { target: root, dark: isDark() });
+        document.documentElement.style.setProperty(
+          '--gradient-primary',
+          `linear-gradient(135deg, var(--md-sys-color-primary) 0%, color-mix(in oklab, var(--md-sys-color-primary) 85%, #ffffff) 50%, color-mix(in oklab, var(--md-sys-color-primary) 70%, #ffffff) 100%)`
+        );
+        currentSeed = hex;
+        localStorage.setItem(STORAGE_KEYS.seed, hex);
+      } catch (e) {
+        console.warn('Dynamic color apply failed', e);
+      }
+    }
+
+    function applyThemeMode(theme) {
+      root.setAttribute('data-theme', theme);
+      localStorage.setItem(STORAGE_KEYS.theme, theme);
+      const dark = theme === 'dark';
+      sun.style.display = dark ? 'none' : 'block';
+      moon.style.display = dark ? 'block' : 'none';
+      applyThemeFromSeed(currentSeed);
+    }
+
+    applyThemeMode(localStorage.getItem(STORAGE_KEYS.theme) || 'light');
+    applyThemeFromSeed(currentSeed);
+
+    themeToggle.addEventListener('click', () => {
+      applyThemeMode(isDark() ? 'light' : 'dark');
+    });
+
+    function togglePanel() {
+      brandPanel.classList.toggle('open');
+    }
+
+    paletteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      togglePanel();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!brandPanel.contains(e.target) && e.target !== paletteBtn) {
+        brandPanel.classList.remove('open');
+      }
+      if (dialOpen && !moreWrap.contains(e.target)) {
+        toggleDial(false);
+      }
+    });
+
+    brandPanel.addEventListener('click', (e) => {
+      const btn = e.target.closest('.chip');
+      if (btn && btn.dataset.seed) {
+        customSeed.value = btn.dataset.seed;
+        customSeedHex.value = btn.dataset.seed;
+        applyThemeFromSeed(btn.dataset.seed);
+      }
+    });
+
+    customSeed.addEventListener('input', () => {
+      customSeedHex.value = customSeed.value;
+    });
+
+    customSeedHex.addEventListener('input', () => {
+      if (/^#([0-9a-fA-F]{6})$/.test(customSeedHex.value)) {
+        customSeed.value = customSeedHex.value;
+      }
+    });
+
+    applySeed.addEventListener('click', () => {
+      if (/^#([0-9a-fA-F]{6})$/.test(customSeed.value)) {
+        applyThemeFromSeed(customSeed.value);
+      }
+    });
+
+    function escapeHTML(str) {
+      return String(str).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+    }
+
+    function trimText(value, limit = 600) {
+      const raw = String(value ?? '').trim();
+      if (!raw) return '';
+      if (raw.length <= limit) return raw;
+      return `${raw.slice(0, limit)}…`;
+    }
+
+    function formatDescription(value, limit = 600) {
+      const trimmed = trimText(value, limit);
+      if (!trimmed) return '';
+      return escapeHTML(trimmed).replace(/\n+/g, '<br/>');
+    }
+
+    function formatCost(value, lang) {
+      if (value === null || value === undefined) return '';
+      const trimmed = String(value).trim();
+      if (!trimmed) return '';
+      if (['0', '무료', 'free'].includes(trimmed.toLowerCase())) {
+        return escapeHTML(translations[lang].costFree);
+      }
+      return escapeHTML(trimmed);
+    }
+
+    function formatMultiline(text) {
+      if (!text) return '';
+      return escapeHTML(String(text)).replace(/\n+/g, '<br/>');
+    }
+
+    function escapeValue(value, fallback = '') {
+      const raw = value ?? '';
+      const text = String(raw).trim();
+      if (!text) {
+        return fallback ? escapeHTML(fallback) : '';
+      }
+      return escapeHTML(text);
+    }
+
+    function extractEvent(ev, lang, options = {}) {
+      if (!ev || typeof ev !== 'object') return null;
+      const t = translations[lang];
+      const limit = options.descriptionLimit ?? 600;
+      return {
+        title: escapeValue(ev.title, t.unknownTitle),
+        category: escapeValue(ev.category),
+        schedule: escapeValue(ev.period || ev.date || ev.datetime),
+        location: escapeValue(ev.place || ev.location),
+        host: escapeValue(ev.host || ev.organization),
+        status: escapeValue(ev.state || ev.status),
+        cost: formatCost(ev.cost, lang),
+        description: formatDescription(ev.deep_data || ev.description || ev.overview || '', limit),
+        link: escapeValue(ev.url || '')
+      };
+    }
+
+    function assistantHeaderHTML() {
+      return `<div class="assistant-header"><div class="w-6 h-6 rounded-full" style="background:linear-gradient(90deg,#34D399,#06B6D4)"></div><span class="text-xs opacity-70 font-medium">${translations[currentLang].assistantBadge}</span></div>`;
+    }
+
+    function renderEventCard(ev, options = {}) {
+      const lang = options.lang || currentLang;
+      const t = translations[lang];
+      if (!ev || Object.keys(ev).length === 0) {
+        return `<div class="text-sm opacity-80">${t.noEvent}</div>`;
+      }
+      const data = extractEvent(ev, lang, options);
+      if (!data) {
+        return `<div class="text-sm opacity-80">${t.noEvent}</div>`;
+      }
+      const infoParts = [];
+      if (data.category) infoParts.push(`📂 ${t.eventLabels.category}: ${data.category}`);
+      if (data.schedule) infoParts.push(`📅 ${t.eventLabels.schedule}: ${data.schedule}`);
+      if (data.location) infoParts.push(`📍 ${t.eventLabels.location}: ${data.location}`);
+      const metaParts = [];
+      if (data.host) metaParts.push(`🏢 ${t.eventLabels.host}: ${data.host}`);
+      if (data.status) metaParts.push(`📌 ${t.eventLabels.status}: ${data.status}`);
+      if (data.cost) metaParts.push(`💰 ${t.eventLabels.cost}: ${data.cost}`);
+      const link = options.showLink && data.link ? `<a href="${data.link}" target="_blank" rel="noopener">${t.actions.viewDetail}</a>` : '';
+      return `
+        <div class="${options.wrapperClass || 'mt-2 p-3 rounded-[16px] border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-low)] shadow-sm'}">
+          <div class="text-base font-semibold mb-1" style="letter-spacing:-0.01em">${data.title}</div>
+          ${infoParts.length ? `<div class="flex flex-wrap gap-x-3 gap-y-1 text-sm opacity-80">${infoParts.map((p) => `<div>${p}</div>`).join('')}</div>` : ''}
+          ${metaParts.length ? `<div class="flex flex-wrap gap-x-3 gap-y-1 text-xs mt-3 opacity-70">${metaParts.map((p) => `<div>${p}</div>`).join('')}</div>` : ''}
+          ${data.description ? `<div class="mt-3 text-sm leading-6">${data.description}</div>` : ''}
+          ${link ? `<div class="mt-3 text-sm font-semibold">${link}</div>` : ''}
+        </div>
+      `;
+    }
+
+    function renderKeywords(kw = []) {
+      if (!Array.isArray(kw) || kw.length === 0) return '';
+      const pills = kw.slice(0, 8).map((k) => `<span class="px-2 py-1 rounded-full border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container)] text-xs">${escapeHTML(k)}</span>`).join(' ');
+      return `<div class="mt-2 flex flex-wrap gap-1 items-center">${pills}</div>`;
+    }
+
+    function addBubble(role, html) {
       const row = document.createElement('div');
       row.className = 'flex ' + (role === 'user' ? 'justify-end' : 'justify-start');
       row.innerHTML = `<div class="bubble ${role}">${html}</div>`;
@@ -358,117 +670,337 @@
       chatList.scrollTo({ top: chatList.scrollHeight, behavior: 'smooth' });
     }
 
-    let typingEl = null;
-    function showTyping(){
+    function showTyping() {
+      hideTyping();
       const row = document.createElement('div');
       row.className = 'flex justify-start';
+      const t = translations[currentLang];
       row.innerHTML = `
         <div class="bubble assistant">
-          <div class="flex items-center gap-2 mb-2">
-            <div class="w-5 h-5 rounded-full" style="background:linear-gradient(90deg,#34D399,#06B6D4)"></div>
-            <span class="text-xs opacity-70">입력 중...</span>
-          </div>
+          ${assistantHeaderHTML()}
+          <div class="text-xs opacity-70 mb-2">${t.typingLabel}</div>
           <div class="dots"><span></span><span></span><span></span></div>
-        </div>`;
-      chatList.appendChild(row);
+        </div>
+      `;
       typingEl = row;
+      chatList.appendChild(row);
       chatList.scrollTo({ top: chatList.scrollHeight, behavior: 'smooth' });
     }
-    function hideTyping(){ if (typingEl) typingEl.remove(); typingEl = null; }
 
-    // 행사 카드 렌더링
-    function renderEventCard(ev){
-      if(!ev || Object.keys(ev).length === 0){
-        return `<div class="text-sm opacity-80">관련된 행사를 찾지 못했어요. 키워드를 조금 바꿔보시겠어요? (예: 날짜/지역/분야 추가)</div>`;
+    function hideTyping() {
+      if (typingEl) {
+        typingEl.remove();
+        typingEl = null;
       }
-      const title = escapeHTML(ev.title || '제목 미상');
-      const category = escapeHTML(ev.category || '분류 정보 없음');
-      const date = escapeHTML(ev.date || ev.datetime || ev.period || '일정 정보 없음');
-      const location = escapeHTML(ev.location || ev.place || '장소 정보 없음');
-      const desc = escapeHTML(ev.deep_data || ev.description || '');
-
-      return `
-      <div class="mt-2 p-3 rounded-[16px] border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-low)] shadow-sm">
-        <div class="text-base font-semibold mb-1" style="letter-spacing:-0.01em">${title}</div>
-        <div class="flex flex-wrap gap-x-3 gap-y-1 text-sm opacity-80">
-          <div>📂 ${category}</div>
-          <div>📅 ${date}</div>
-          <div>📍 ${location}</div>
-        </div>
-        ${desc ? `<div class="mt-2 text-sm leading-6">${desc}</div>` : ``}
-      </div>`;
     }
 
-    function renderKeywords(kw = []){
-      if(!kw || kw.length === 0) return '';
-      const pills = kw.slice(0,8).map(k => `<span class="px-2 py-1 rounded-full border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container)] text-xs">${escapeHTML(k)}</span>`).join(' ');
-      return `<div class="mt-2 flex flex-wrap gap-1 items-center">${pills}</div>`;
+    function updateSend() {
+      const hasText = input.value.trim().length > 0;
+      send.setAttribute('data-compact', hasText ? 'false' : 'true');
+      const labelEl = send.querySelector('.label');
+      if (labelEl) labelEl.setAttribute('aria-hidden', hasText ? 'false' : 'true');
     }
 
-    async function sendMessage(){
+    input.addEventListener('input', updateSend);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    send.addEventListener('click', sendMessage);
+
+    chips.addEventListener('click', (e) => {
+      const btn = e.target.closest('.chip');
+      if (!btn) return;
+      input.value = btn.dataset.text || '';
+      updateSend();
+      input.focus();
+    });
+
+    function buildAssistantResponse(payload) {
+      const t = translations[currentLang];
+      const keywords = Array.isArray(payload.keywords) ? payload.keywords : [];
+      const reasonData = payload.reason;
+      const reasonText = typeof reasonData === 'string'
+        ? reasonData
+        : (reasonData?.[currentLang] || reasonData?.ko || '');
+      let html = assistantHeaderHTML();
+      if (keywords.length) {
+        html += `<div class="text-sm opacity-70 mb-1">${t.keywordTitle}</div>${renderKeywords(keywords)}`;
+      }
+      if (reasonText) {
+        html += `<div class="mt-3 text-sm leading-6">${formatMultiline(reasonText)}</div>`;
+      }
+      html += renderEventCard(payload.recommended_event || {}, { showLink: true });
+      return html;
+    }
+
+    async function sendMessage() {
       const text = input.value.trim();
-      if(!text) return;
+      if (!text) return;
 
-      // 사용자 말풍선
       addBubble('user', escapeHTML(text));
       input.value = '';
       updateSend();
-
-      // 타이핑 표시
       showTyping();
 
-      try{
+      try {
         const res = await fetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: text })
         });
-
         const data = await res.json();
         hideTyping();
-
-        // 백엔드 응답 스키마에 맞춰 파싱
-        const payload = data.response || {};
-        const keywords = payload.keywords || [];
-        const event = payload.recommended_event || {};
-        const reason = payload.reason;
-
-        // 어시스턴트 말풍선 콘텐츠 조립
-        let html = '';
-        if (keywords && keywords.length){
-          html += `<div class="text-sm opacity-70 mb-1">🔎 추출된 키워드</div>${renderKeywords(keywords)}`;
+        const rawResponse = data?.response;
+        let responsePayload = {};
+        if (rawResponse && typeof rawResponse === 'object') {
+          responsePayload = rawResponse;
+        } else if (typeof rawResponse === 'string') {
+          responsePayload = { reason: { ko: rawResponse, en: rawResponse }, recommended_event: {} };
         }
-        if (reason){
-          html += `<div class="mt-3">${escapeHTML(reason)}</div>`;
-        }
-        html += renderEventCard(event);
-
+        const html = buildAssistantResponse(responsePayload);
         addBubble('assistant', html);
-
-      } catch(err){
+      } catch (err) {
         hideTyping();
+        const t = translations[currentLang];
         addBubble('assistant', `
-          <div class="text-sm">요청 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.</div>
+          ${assistantHeaderHTML()}
+          <div class="text-sm">${t.errorMessage}</div>
           <div class="mt-2 text-xs opacity-70">${escapeHTML(String(err))}</div>
         `);
       }
     }
 
-    updateSend();
+    function updateLanguageToggle() {
+      languageToggle.textContent = currentLang === 'ko' ? 'EN' : 'KO';
+      languageToggle.setAttribute('lang', currentLang === 'ko' ? 'en' : 'ko');
+      languageToggle.setAttribute('aria-label', translations[currentLang].languageAria);
+    }
 
-    // ====== FAB Speed Dial logic (anchored) ======
-    const fabDial = document.getElementById('fabDial');
-    const moreBtn = document.getElementById('moreBtn');
-    const moreWrap = document.getElementById('moreWrap');
+    function updateIntroBubble() {
+      const t = translations[currentLang];
+      introBadge.textContent = t.assistantBadge;
+      introText.innerHTML = t.assistantIntro;
+      introHint.textContent = t.assistantSuggestion;
+    }
 
-    let dialOpen = false;
-    function toggleDial(force){ dialOpen = typeof force === 'boolean' ? force : !dialOpen; fabDial.classList.toggle('open', dialOpen); }
-    moreBtn.addEventListener('click', (e)=>{ e.stopPropagation(); toggleDial(); });
-    document.addEventListener('click', (e)=>{ if(dialOpen && !moreWrap.contains(e.target)){ toggleDial(false); } });
+    function renderChips() {
+      chips.innerHTML = '';
+      const presets = translations[currentLang].chips || [];
+      presets.forEach((preset) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'chip';
+        btn.dataset.text = preset.prompt;
+        btn.textContent = preset.label;
+        chips.appendChild(btn);
+      });
+    }
 
-    // Close on viewport or IME resize (to avoid awkward overlaps)
-    const ro = new ResizeObserver(()=>{ toggleDial(false); });
+    function renderFeedFilters() {
+      if (!feedFiltersEl) return;
+      feedFiltersEl.innerHTML = '';
+      feedFilterOptions.forEach((option) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'chip';
+        btn.dataset.filterId = option.id;
+        btn.dataset.active = option.id === activeFeedFilter ? 'true' : 'false';
+        btn.textContent = option.label[currentLang] || option.label.ko;
+        btn.addEventListener('click', () => {
+          activeFeedFilter = option.id;
+          renderFeedFilters();
+          renderFeed();
+        });
+        feedFiltersEl.appendChild(btn);
+      });
+    }
+
+    function filterEventsByActiveOption(events) {
+      const option = feedFilterOptions.find((opt) => opt.id === activeFeedFilter);
+      if (!option || !option.match || option.match.length === 0) {
+        return events.slice();
+      }
+      const keywords = option.match.map((m) => m.toLowerCase());
+      return events.filter((ev) => {
+        const haystack = `${ev.host || ''} ${ev.organization || ''} ${ev.title || ''}`.toLowerCase();
+        return keywords.some((keyword) => haystack.includes(keyword));
+      });
+    }
+
+    function createFeedCard(ev) {
+      const data = extractEvent(ev, currentLang, { descriptionLimit: 420 });
+      if (!data) return null;
+      const t = translations[currentLang];
+      const card = document.createElement('article');
+      card.className = 'feed-card';
+      const infoParts = [];
+      if (data.category) infoParts.push(`📂 ${data.category}`);
+      if (data.schedule) infoParts.push(`📅 ${data.schedule}`);
+      if (data.location) infoParts.push(`📍 ${data.location}`);
+      const infoHTML = infoParts.length ? `<div class="feed-meta">${infoParts.map((p) => `<span>${p}</span>`).join('')}</div>` : '';
+      const metaParts = [];
+      if (data.host) metaParts.push(`🏢 ${data.host}`);
+      if (data.status) metaParts.push(`📌 ${data.status}`);
+      if (data.cost) metaParts.push(`💰 ${data.cost}`);
+      const footerSegments = [];
+      if (metaParts.length) {
+        footerSegments.push(`<span>${metaParts.join(' · ')}</span>`);
+      }
+      if (data.link) {
+        footerSegments.push(`<a href="${data.link}" target="_blank" rel="noopener">${t.actions.viewDetail}</a>`);
+      }
+      const footerHTML = footerSegments.length ? `<div class="feed-footer">${footerSegments.join('')}</div>` : '';
+      card.innerHTML = `
+        <h3>${data.title}</h3>
+        ${infoHTML}
+        ${data.description ? `<div class="feed-desc">${data.description}</div>` : ''}
+        ${footerHTML}
+      `;
+      return card;
+    }
+
+    function renderFeed() {
+      if (!feedLoaded) return;
+      const t = translations[currentLang];
+      const filtered = filterEventsByActiveOption(cachedEvents);
+      feedList.innerHTML = '';
+      if (filtered.length === 0) {
+        feedMessage.textContent = t.feedEmpty;
+        feedFootnote.textContent = t.feedFootnote;
+        return;
+      }
+      feedMessage.textContent = '';
+      const locale = currentLang === 'ko' ? 'ko' : 'en';
+      const sorted = filtered.slice().sort((a, b) => {
+        const hostA = String(a.host || a.organization || '');
+        const hostB = String(b.host || b.organization || '');
+        const titleA = String(a.title || '');
+        const titleB = String(b.title || '');
+        const hostCompare = hostA.localeCompare(hostB, locale, { sensitivity: 'base' });
+        if (hostCompare !== 0) return hostCompare;
+        return titleA.localeCompare(titleB, locale, { sensitivity: 'base' });
+      });
+      sorted.forEach((ev) => {
+        const card = createFeedCard(ev);
+        if (card) feedList.appendChild(card);
+      });
+      feedFootnote.textContent = t.feedFootnote;
+    }
+
+    async function ensureFeed(forceReload = false) {
+      const t = translations[currentLang];
+      if (feedLoaded && !forceReload) {
+        renderFeed();
+        return;
+      }
+      feedMessage.textContent = t.feedLoading;
+      try {
+        const res = await fetch('/events');
+        const data = await res.json();
+        cachedEvents = Array.isArray(data.events) ? data.events : [];
+        feedLoaded = true;
+        renderFeed();
+      } catch (err) {
+        console.error('Failed to load events', err);
+        feedMessage.textContent = t.feedError;
+        feedFootnote.textContent = '';
+      }
+    }
+
+    function handleSurfaceScroll(target) {
+      if (!target) return;
+      const shouldCompact = target.scrollTop > 6;
+      appBar.classList.toggle('compact', shouldCompact);
+    }
+
+    function switchView(view) {
+      if (view !== 'chat' && view !== 'feed') return;
+      currentView = view;
+      tabButtons.forEach((btn) => {
+        const isActive = btn.dataset.view === view;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+      chatView.classList.toggle('active', view === 'chat');
+      feedView.classList.toggle('active', view === 'feed');
+      if (view === 'chat') {
+        handleSurfaceScroll(chatList);
+      } else {
+        ensureFeed();
+        handleSurfaceScroll(feedList);
+      }
+    }
+
+    tabButtons.forEach((btn) => {
+      btn.addEventListener('click', () => switchView(btn.dataset.view));
+    });
+
+    function applyLanguage(lang) {
+      currentLang = lang === 'en' ? 'en' : 'ko';
+      localStorage.setItem(STORAGE_KEYS.lang, currentLang);
+      document.documentElement.lang = currentLang === 'ko' ? 'ko' : 'en';
+      const t = translations[currentLang];
+      document.title = t.documentTitle;
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.dataset.i18n;
+        if (t[key]) {
+          el.textContent = t[key];
+        }
+      });
+      input.placeholder = t.placeholder;
+      input.setAttribute('aria-label', t.placeholder);
+      const labelEl = send.querySelector('.label');
+      if (labelEl) labelEl.textContent = t.sendLabel;
+      send.setAttribute('aria-label', t.sendAria);
+      paletteBtn.setAttribute('aria-label', t.paletteAria);
+      themeToggle.setAttribute('aria-label', t.themeAria);
+      moreBtn.setAttribute('aria-label', t.moreAria);
+      updateLanguageToggle();
+      updateIntroBubble();
+      renderChips();
+      renderFeedFilters();
+      if (feedLoaded) {
+        renderFeed();
+      } else {
+        feedMessage.textContent = '';
+        feedFootnote.textContent = '';
+      }
+    }
+
+    languageToggle.addEventListener('click', () => {
+      applyLanguage(currentLang === 'ko' ? 'en' : 'ko');
+    });
+
+    function toggleDial(force) {
+      dialOpen = typeof force === 'boolean' ? force : !dialOpen;
+      fabDial.classList.toggle('open', dialOpen);
+    }
+
+    moreBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleDial();
+    });
+
+    chatList.addEventListener('scroll', () => {
+      if (currentView === 'chat') handleSurfaceScroll(chatList);
+    });
+
+    feedList.addEventListener('scroll', () => {
+      if (currentView === 'feed') handleSurfaceScroll(feedList);
+    });
+
+    const ro = new ResizeObserver(() => {
+      toggleDial(false);
+    });
     ro.observe(document.body);
+
+    applyLanguage(currentLang);
+    updateSend();
+    handleSurfaceScroll(chatList);
   </script>
+
 </body>
 </html>

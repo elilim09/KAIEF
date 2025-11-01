@@ -16,6 +16,52 @@ openai_client = AsyncOpenAI(api_key='sk-svcacct-Tnb4Na44_tM3qZ4EmGdqSaz1utygLXZk
 
 events_data = []
 
+
+def build_reason(event, keywords):
+    if not event:
+        return {
+            "ko": "요청과 일치하는 행사를 찾지 못했습니다. 다른 조건으로 다시 시도해보세요.",
+            "en": "No matching events were found. Try adjusting the filters and ask again."
+        }
+
+    title = event.get("title") or "행사"
+    location = event.get("place") or event.get("location") or ""
+    period = event.get("period") or event.get("date") or event.get("datetime") or ""
+    host = event.get("host") or event.get("organization") or ""
+
+    top_keywords = [k for k in keywords if k][:3]
+    keyword_str = ", ".join(top_keywords)
+
+    reason_ko = []
+    reason_en = []
+
+    if keyword_str:
+        reason_ko.append(f"'{keyword_str}' 키워드와 가장 잘 맞는 '{title}' 행사를 추천했어요.")
+        reason_en.append(f"We matched the keywords '{keyword_str}' with the event '{title}'.")
+    else:
+        reason_ko.append(f"'{title}' 행사를 추천했어요.")
+        reason_en.append(f"We recommend the event '{title}'.")
+
+    if period:
+        reason_ko.append(f"일정은 {period}입니다.")
+        reason_en.append(f"It runs on {period}.")
+
+    if location:
+        reason_ko.append(f"장소는 {location}이에요.")
+        reason_en.append(f"The venue is {location}.")
+
+    if host:
+        reason_ko.append(f"주관 기관은 {host}입니다.")
+        reason_en.append(f"Hosted by {host}.")
+
+    reason_ko.append("자세한 사항은 행사 링크에서 확인해보세요.")
+    reason_en.append("Check the event link for more details.")
+
+    return {
+        "ko": " ".join(reason_ko),
+        "en": " ".join(reason_en)
+    }
+
 @app.on_event("startup")
 async def load_events_data():
     global events_data
@@ -37,10 +83,20 @@ async def read_root(request: Request):
 @app.post("/chat")
 async def chat(request: Request):
     data = await request.json()
-    user_message = data.get("message", "").lower()
+    raw_message = (data.get("message") or "").strip()
+    user_message = raw_message.lower()
 
-    if not user_message:
-        return {"response": "메시지를 입력해주세요."}
+    if not raw_message:
+        return {
+            "response": {
+                "keywords": [],
+                "recommended_event": {},
+                "reason": {
+                    "ko": "메시지를 입력해주세요.",
+                    "en": "Please enter a message to begin."
+                }
+            }
+        }
 
     try:
         # OpenAI API로 키워드/카테고리 정규화 추출 (Few-shot 적용)
@@ -162,7 +218,7 @@ async def chat(request: Request):
             # -------- 실제 사용자 입력 --------
             {
                 "role": "user",
-                "content": f"{user_message}"
+                "content": f"{raw_message}"
             }
         ]
 
@@ -174,18 +230,27 @@ async def chat(request: Request):
             top_p=0.9
         )
         analysis = json.loads(response.choices[0].message.content)
-        keywords = analysis.get("keywords", []) or analysis.get("categories", []) or [user_message]
+        keywords = analysis.get("keywords") or analysis.get("categories") or []
+        if isinstance(keywords, str):
+            keywords = [keywords]
+        keywords = [k for k in keywords if isinstance(k, str) and k.strip()]
+        if not keywords:
+            keywords = [raw_message] if raw_message else []
         print(f"추출된 키워드: {keywords}")
 
         matching_events = []
         for event in events_data:
             score = 0
+            title = (event.get('title') or '').lower()
+            description = (event.get('deep_data') or '').lower()
+            category_text = (event.get('category') or '').lower()
             for keyword in keywords:
-                if keyword.lower() in event.get('title', '').lower():
+                keyword_lower = keyword.lower()
+                if keyword_lower in title:
                     score += 2
-                if keyword.lower() in event.get('deep_data', '').lower():
+                if keyword_lower in description:
                     score += 1
-                if keyword.lower() in event.get('category', '').lower():
+                if keyword_lower in category_text:
                     score += 1
             if score > 0:
                 matching_events.append((event, score))
@@ -197,14 +262,15 @@ async def chat(request: Request):
                 "response": {
                     "keywords": keywords,
                     "recommended_event": {},
-                    "reason": f"'{user_message}'와 관련된 행사를 events.json에서 찾을 수 없습니다."
+                    "reason": build_reason(None, keywords)
                 }
             }
         best_event, best_score = max(matching_events, key=lambda x: x[1])
         return {
             "response": {
                 "keywords": keywords,
-                "recommended_event": best_event
+                "recommended_event": best_event,
+                "reason": build_reason(best_event, keywords)
             }
         }
 
@@ -212,8 +278,16 @@ async def chat(request: Request):
         print(f"OpenAI API 오류: {e}")
         return {
             "response": {
-                "keywords": [user_message],
+                "keywords": keywords if locals().get('keywords') else [raw_message] if raw_message else [],
                 "recommended_event": {},
-                "reason": f"오류가 발생했습니다: {str(e)}"
+                "reason": {
+                    "ko": f"오류가 발생했습니다: {str(e)}",
+                    "en": f"An error occurred: {str(e)}"
+                }
             }
         }
+
+
+@app.get("/events")
+async def get_events():
+    return {"events": events_data}
