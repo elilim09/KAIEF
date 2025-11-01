@@ -1,5 +1,7 @@
 import json
 import os
+from datetime import datetime
+from typing import Optional
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -12,27 +14,106 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-openai_client = AsyncOpenAI(api_key='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') 
+openai_client = AsyncOpenAI(api_key='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')
+
+BASE_DIR = os.path.dirname(__file__)
 
 events_data = []
+events_last_updated = None
+events_file_path = None
+events_file_mtime = None
 
-@app.on_event("startup")
-async def load_events_data():
+
+def _discover_events_file() -> Optional[str]:
+    """Return the first existing events file path from the search order."""
+    candidates = [
+        os.environ.get("KAIEF_EVENTS_PATH"),
+        os.path.abspath(os.path.join(BASE_DIR, "..", "..", "events.json")),
+        os.path.abspath(os.path.join(BASE_DIR, "..", "events.json")),
+    ]
+
+    for candidate in candidates:
+        if candidate and os.path.exists(candidate):
+            return candidate
+    return None
+
+
+async def _load_events_from_file(path: str) -> None:
+    """Load event data from the given path into global caches."""
     global events_data
+    global events_last_updated
+    global events_file_path
+    global events_file_mtime
+
     try:
-        async with aiofiles.open('../events.json', mode='r', encoding='utf-8') as f:
+        async with aiofiles.open(path, mode="r", encoding="utf-8") as f:
             content = await f.read()
             events_data = json.loads(content)
+        mtime = os.path.getmtime(path)
+        events_last_updated = datetime.fromtimestamp(mtime).isoformat()
+        events_file_path = path
+        events_file_mtime = mtime
+        print(f"Loaded {len(events_data)} events from {path}")
     except FileNotFoundError:
         events_data = []
+        events_last_updated = None
+        events_file_path = None
+        events_file_mtime = None
         print("events.json 파일을 찾을 수 없습니다.")
     except json.JSONDecodeError:
         events_data = []
+        events_last_updated = None
+        events_file_path = path
+        events_file_mtime = os.path.getmtime(path) if os.path.exists(path) else None
         print("events.json 디코딩 중 오류가 발생했습니다.")
+
+
+async def refresh_events(force: bool = False) -> None:
+    """Ensure the in-memory event cache reflects the latest file contents."""
+    global events_data
+    global events_file_path
+    global events_file_mtime
+    global events_last_updated
+
+    path = _discover_events_file()
+    if not path:
+        if force:
+            print("이용 가능한 events.json 파일을 찾을 수 없습니다.")
+        events_data = []
+        events_last_updated = None
+        events_file_path = None
+        events_file_mtime = None
+        return
+
+    try:
+        mtime = os.path.getmtime(path)
+    except FileNotFoundError:
+        if force:
+            print("events.json 파일을 찾을 수 없습니다.")
+        events_data = []
+        events_last_updated = None
+        events_file_path = None
+        events_file_mtime = None
+        return
+
+    if not force and events_file_path == path and events_file_mtime == mtime:
+        return
+
+    await _load_events_from_file(path)
+
+
+@app.on_event("startup")
+async def load_events_data() -> None:
+    await refresh_events(force=True)
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/events")
+async def get_events():
+    await refresh_events()
+    return {"events": events_data, "updatedAt": events_last_updated}
 
 @app.post("/chat")
 async def chat(request: Request):

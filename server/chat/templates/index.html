@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>SEAIF – 성남시행사 AI 파인더</title>
+  <title>KAIEF – 대한민국 행사 AI 파인더</title>
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Material 3 Expressive-friendly fonts -->
@@ -128,6 +128,41 @@
     .brand-title .small { font-size: 16px; opacity: .9; display:none; }
     .app-bar.compact .brand-title .large { display:none; }
     .app-bar.compact .brand-title .small { display:inline-block; }
+    .control-cluster { display:flex; align-items:center; gap:10px; }
+    .lang-toggle { display:flex; background: var(--md-sys-color-surface-container-low); padding:4px; border-radius: var(--shape-corner-full); border:1px solid var(--md-sys-color-outline-variant); box-shadow: var(--elevation-1); }
+    .lang-toggle button { border:0; background:transparent; padding:6px 12px; border-radius: var(--shape-corner-full); font-size:12px; font-weight:600; color: color-mix(in oklab, var(--md-sys-color-on-surface) 80%, transparent); cursor:pointer; transition: background var(--dur-quick) var(--easing-standard), color var(--dur-quick) var(--easing-standard); }
+    .lang-toggle button.active { background: var(--gradient-primary); color: var(--md-sys-color-on-primary); box-shadow: var(--elevation-2); }
+    .hero { margin-top: 16px; }
+    .hero p { margin: 0; line-height: 1.6; font-size: 14px; color: color-mix(in oklab, var(--md-sys-color-on-surface) 80%, transparent); }
+    .hero-pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .service-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius: var(--shape-corner-full); font-size:12px; font-weight:600; background: var(--md-sys-color-surface-container); border:1px solid var(--md-sys-color-outline-variant); color: color-mix(in oklab, var(--md-sys-color-on-surface) 90%, transparent); }
+    .view-tabs { margin-top: 18px; display:flex; gap:8px; background: var(--md-sys-color-surface-container-low); padding:6px; border-radius: var(--shape-corner-full); border:1px solid var(--md-sys-color-outline-variant); }
+    .view-tabs button { flex:1; border:0; border-radius: var(--shape-corner-full); padding:10px 0; font-weight:600; font-size:13px; background:transparent; color: color-mix(in oklab, var(--md-sys-color-on-surface) 75%, transparent); cursor:pointer; transition: background var(--dur-quick) var(--easing-standard), color var(--dur-quick) var(--easing-standard), transform var(--dur-quick) var(--easing-standard); }
+    .view-tabs button.active { background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); box-shadow: var(--elevation-1); transform: translateY(-1px); }
+    .view { display:none; }
+    .view.active { display:flex; }
+    .chat { height: calc(100dvh - 72px); display:flex; flex-direction:column; background: var(--md-sys-color-surface); }
+    .feed { flex-direction:column; background: var(--md-sys-color-surface); }
+    .feed-inner { flex:1; overflow-y:auto; padding: 18px 20px 32px; display:flex; flex-direction:column; gap:18px; }
+    .feed-intro { background: var(--md-sys-color-surface-container); border-radius: var(--shape-corner-xl); padding:18px; border:1px solid var(--md-sys-color-outline-variant); box-shadow: var(--elevation-1); }
+    .feed-intro h2 { font-size:18px; margin:0 0 8px; letter-spacing:-0.01em; }
+    .feed-intro p { margin:0; font-size:14px; line-height:1.6; color: color-mix(in oklab, var(--md-sys-color-on-surface) 78%, transparent); }
+    .feed-controls { background: var(--md-sys-color-surface-container-low); border-radius: var(--shape-corner-xl); padding:16px; border:1px solid var(--md-sys-color-outline-variant); display:flex; flex-direction:column; gap:16px; }
+    .feed-controls strong { font-size:13px; color: color-mix(in oklab, var(--md-sys-color-on-surface) 80%, transparent); }
+    .filter-row { display:flex; flex-wrap:wrap; gap:8px; }
+    .filter-chip { border-radius: var(--shape-corner-full); border:1px solid var(--md-sys-color-outline-variant); padding:8px 14px; font-size:13px; font-weight:500; cursor:pointer; background: var(--md-sys-color-surface); transition: all var(--dur-quick) var(--easing-standard); }
+    .filter-chip.active { background: var(--gradient-primary); border-color: transparent; color: var(--md-sys-color-on-primary); box-shadow: var(--elevation-2); }
+    .feed-insights { background: var(--md-sys-color-surface-container); border-radius: var(--shape-corner-xl); padding:18px; border:1px solid var(--md-sys-color-outline-variant); box-shadow: var(--elevation-1); display:flex; flex-direction:column; gap:12px; }
+    .feed-insights h3 { margin:0; font-size:16px; }
+    .insight-list { display:flex; flex-direction:column; gap:8px; font-size:13px; color: color-mix(in oklab, var(--md-sys-color-on-surface) 85%, transparent); }
+    .feed-list { display:flex; flex-direction:column; gap:14px; }
+    .feed-card { border-radius: var(--shape-corner-xl); border:1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface); padding:16px; box-shadow: var(--elevation-1); display:flex; flex-direction:column; gap:12px; }
+    .feed-card h3 { margin:0; font-size:15px; letter-spacing:-0.01em; }
+    .feed-card .meta { display:flex; flex-wrap:wrap; gap:10px; font-size:13px; color: color-mix(in oklab, var(--md-sys-color-on-surface) 85%, transparent); }
+    .feed-card .meta span { display:flex; align-items:center; gap:4px; }
+    .feed-card a { align-self:flex-end; font-size:13px; font-weight:600; color: var(--md-sys-color-primary); text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+    .empty-feed { border-radius: var(--shape-corner-xl); border:1px dashed var(--md-sys-color-outline-variant); background: color-mix(in oklab, var(--md-sys-color-surface-container) 70%, transparent); padding:24px; text-align:center; font-size:14px; color: color-mix(in oklab, var(--md-sys-color-on-surface) 75%, transparent); }
+    .hidden { display:none !important; }
 
     .icon-button { width: 40px; height: 40px; border-radius: var(--shape-corner-lg); display:grid; place-items:center; border:1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface-container-low); color: var(--md-sys-color-on-surface); transition: transform var(--dur-quick) var(--easing-standard), background var(--dur-quick) var(--easing-standard); }
     .icon-button:hover { transform: translateY(-1px); background: var(--md-sys-color-surface-container); }
@@ -139,7 +174,6 @@
     .chip { padding:8px 14px; border-radius: var(--shape-corner-full); font-size:13px; font-weight:500; cursor:pointer; border:1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface-container-low); color: var(--md-sys-color-on-surface); transition: transform var(--dur-quick) var(--easing-standard), background var(--dur-quick) var(--easing-standard), border-color var(--dur-quick) var(--easing-standard); }
     .chip:hover{ transform: translateY(-1px); background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); border-color: var(--md-sys-color-primary); }
 
-    .chat { height: calc(100dvh - 72px); display:flex; flex-direction:column; background: var(--md-sys-color-surface); }
     .chat-list { flex:1; padding: 14px 20px; overflow-y:auto; scroll-behavior:smooth; }
     .chat-list::-webkit-scrollbar{ width:6px; } .chat-list::-webkit-scrollbar-thumb{ background: var(--md-sys-color-outline); border-radius:3px; }
 
@@ -194,11 +228,15 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" role="img"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
           </div>
           <div class="brand-title">
-            <span class="large">성남시행사 AI 파인더</span>
-            <span class="small">SEAIF</span>
+            <span class="large" data-i18n="brand.large">대한민국 행사 AI 파인더</span>
+            <span class="small" data-i18n="brand.small">KAIEF</span>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="control-cluster">
+          <div class="lang-toggle" role="group" aria-label="Language toggle">
+            <button type="button" data-locale="ko" class="active" data-i18n="lang.ko">한국어</button>
+            <button type="button" data-locale="en" data-i18n="lang.en">English</button>
+          </div>
           <button id="paletteBtn" class="icon-button" aria-label="브랜드 색 설정">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22a5 5 0 01-5-5 7 7 0 117 7z"/><circle cx="6.5" cy="11.5" r="1.5"/><circle cx="9.5" cy="7.5" r="1.5"/><circle cx="14.5" cy="7.5" r="1.5"/><circle cx="17.5" cy="11.5" r="1.5"/></svg>
           </button>
@@ -208,6 +246,21 @@
           </button>
         </div>
       </div>
+
+      <div class="hero">
+        <p data-i18n="hero.paragraph">문화체육관광부 산하 국립기관 행사 정보를 AI로 큐레이션하고, 관심사 기반 맞춤 추천을 제공합니다.</p>
+        <div class="hero-pills">
+          <span class="service-pill" data-i18n="hero.pill1">LLM + RAG 큐레이션</span>
+          <span class="service-pill" data-i18n="hero.pill2">한국어 · English 서비스</span>
+          <span class="service-pill" data-i18n="hero.pill3">시니어 음성 질의</span>
+          <span class="service-pill" data-i18n="hero.pill4">PWA & 실시간 크롤링</span>
+        </div>
+      </div>
+
+      <nav class="view-tabs" aria-label="View switcher">
+        <button type="button" class="active" data-view="chat" data-i18n="tab.chat">AI 챗봇</button>
+        <button type="button" data-view="feed" data-i18n="tab.feed">행사 피드</button>
+      </nav>
 
       <div id="brandPanel" class="popover">
         <div class="text-sm font-semibold mb-2">브랜드 컬러 (씨앗) 선택</div>
@@ -226,22 +279,24 @@
       </div>
     </header>
 
-    <main class="chat" id="chat">
+    <main class="chat view active" id="chatView">
       <div id="chatList" class="chat-list">
         <div class="flex justify-start"><div class="bubble assistant">
           <div class="flex items-center gap-2 mb-2">
             <div class="w-6 h-6 rounded-full" style="background:linear-gradient(90deg,#34D399,#06B6D4)"></div>
-            <span class="text-xs opacity-70 font-medium">AI 어시스턴트</span>
+            <span class="text-xs opacity-70 font-medium" id="assistantIntroBadge" data-i18n="assistant.badge">AI 어시스턴트</span>
           </div>
-          안녕하세요! 🎉<br/>성남시의 다양한 행사와 이벤트 정보를 찾아드립니다. 궁금한 점을 물어보세요!
+          <div id="assistantIntroText" data-i18n="assistant.intro">안녕하세요! 🎉<br/>대한민국 국립기관의 문화·예술 행사를 찾아드리는 KAIEF입니다. 시간, 관심사, 이동 수단을 알려주시면 맞춤 추천을 드릴게요.</div>
         </div></div>
       </div>
 
       <div class="composer">
         <div class="chips" id="chips">
-          <button class="chip" data-text="이번 주말 성남 행사">🎪 주말 행사</button>
-          <button class="chip" data-text="성남 문화행사">🎭 문화행사</button>
-          <button class="chip" data-text="성남시 축제">🎊 축제 정보</button>
+          <button class="chip" data-i18n="chip.weekend" data-text="이번 주말에 갈 만한 문화행사 추천해줘" data-text-ko="이번 주말에 갈 만한 문화행사 추천해줘" data-text-en="Recommend cultural events from national institutions this weekend">🎪 이번 주말 추천</button>
+          <button class="chip" data-i18n="chip.family" data-text="아이와 함께 즐길 수 있는 국립기관 행사를 알려줘" data-text-ko="아이와 함께 즐길 수 있는 국립기관 행사를 알려줘" data-text-en="Share family-friendly programs from national institutions">👨‍👩‍👧 가족 맞춤</button>
+          <button class="chip" data-i18n="chip.free" data-text="무료로 관람 가능한 전시를 소개해줘" data-text-ko="무료로 관람 가능한 전시를 소개해줘" data-text-en="Find free exhibitions curated by national venues">💸 무료 전시</button>
+          <button class="chip" data-i18n="chip.global" data-text="외국인 관광객이 영어 안내를 받을 수 있는 행사를 찾아줘" data-text-ko="외국인 관광객이 영어 안내를 받을 수 있는 행사를 찾아줘" data-text-en="Which events offer English guidance for visitors?">🌏 영어 안내 행사</button>
+          <button class="chip" data-i18n="chip.gugak" data-text="국립국악원에서 열리는 공연 일정을 알려줘" data-text-ko="국립국악원에서 열리는 공연 일정을 알려줘" data-text-en="Show me upcoming performances at the National Gugak Center">🎼 국악 공연</button>
         </div>
         <div class="composer-row">
           <div id="moreWrap" class="relative">
@@ -249,46 +304,334 @@
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
             </button>
             <div id="fabDial" class="fab-dial" aria-label="빠른 작업 메뉴">
+              <button class="mini-fab" data-action="voice" title="음성 입력" aria-label="음성 입력">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a3 3 0 00-3 3v5a3 3 0 106 0V6a3 3 0 00-3-3z"/><path d="M19 10a7 7 0 01-14 0"/><path d="M12 19v3"/></svg>
+                <span class="fab-label" data-i18n="fab.voice">음성</span>
+              </button>
               <button class="mini-fab" data-action="attach-file" title="파일 첨부" aria-label="파일 첨부">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-8.49 8.49a5 5 0 01-7.07-7.07l8.49-8.49a3 3 0 114.24 4.24l-8.49 8.49a1 1 0 11-1.41-1.41l8.49-8.49"/></svg>
-                <span class="fab-label">파일</span>
+                <span class="fab-label" data-i18n="fab.file">파일</span>
               </button>
               <button class="mini-fab" data-action="attach-photo" title="사진 첨부" aria-label="사진 첨부">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16v10H4z"/><path d="M9 13l2-2 2 2 3-3 3 3"/></svg>
-                <span class="fab-label">사진</span>
+                <span class="fab-label" data-i18n="fab.photo">사진</span>
               </button>
               <button class="mini-fab" data-action="share-location" title="현재 위치 추가" aria-label="현재 위치 추가">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 2v2m0 12v6m10-10h-2M4 12H2m14.24 5.76l-1.42-1.42M7.17 5.17L5.76 3.76"/></svg>
-                <span class="fab-label">위치</span>
+                <span class="fab-label" data-i18n="fab.location">위치</span>
               </button>
             </div>
           </div>
 
           <div class="field">
-            <input id="input" class="input" placeholder="무엇이든 물어보세요..." maxlength="500" />
+            <input id="input" class="input" placeholder="무엇이든 물어보세요..." maxlength="500" data-i18n-placeholder="composer.placeholder" />
           </div>
           <button id="send" class="send" data-compact="true" aria-label="메시지 전송">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.4-8.4c.5-.2.5-.9 0-1.2L3.4 2.4c-.5-.2-1 .2-1 .7v5.5c0 .3.2.6.5.6l8.6.9c.2 0 .2.2 0 .3l-8.6.9c-.3 0-.5.3-.5.6V19.7c0 .5.4 1 1 .7z"/></svg>
-            <span class="label">전송</span>
+            <span class="label" data-i18n="composer.send">전송</span>
           </button>
         </div>
       </div>
     </main>
+
+    <section class="feed view" id="feedView">
+      <div class="feed-inner">
+        <div class="feed-intro">
+          <span class="service-pill" data-i18n="feed.badge">맞춤 피드</span>
+          <h2 data-i18n="feed.heading">전국 문화·예술 행사 피드</h2>
+          <p data-i18n="feed.description">국립중앙박물관, 국립중앙도서관, 국립현대미술관 등 주요 기관에서 수집한 행사 정보를 한눈에 살펴보세요.</p>
+        </div>
+
+        <div class="feed-controls">
+          <div>
+            <strong data-i18n="filter.institutions">핵심 기관</strong>
+            <div class="filter-row" id="hostFilters">
+              <button class="filter-chip active" data-host="all" data-i18n="filter.host.all">전체</button>
+              <button class="filter-chip" data-host="nmk" data-i18n="filter.host.nmk">국립중앙박물관</button>
+              <button class="filter-chip" data-host="nlib" data-i18n="filter.host.nlib">국립중앙도서관</button>
+              <button class="filter-chip" data-host="mmca" data-i18n="filter.host.mmca">국립현대미술관</button>
+              <button class="filter-chip" data-host="gugak" data-i18n="filter.host.gugak">국립국악원</button>
+              <button class="filter-chip" data-host="folk" data-i18n="filter.host.folk">국립민속박물관</button>
+              <button class="filter-chip" data-host="others" data-i18n="filter.host.others">기타 국립기관</button>
+            </div>
+          </div>
+          <div>
+            <strong data-i18n="filter.status">진행 상태</strong>
+            <div class="filter-row" id="stateFilters">
+              <button class="filter-chip active" data-state="all" data-i18n="filter.state.all">전체</button>
+              <button class="filter-chip" data-state="open" data-i18n="filter.state.open">진행중</button>
+              <button class="filter-chip" data-state="upcoming" data-i18n="filter.state.upcoming">예정</button>
+              <button class="filter-chip" data-state="closed" data-i18n="filter.state.closed">마감</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="feed-insights">
+          <h3 data-i18n="insight.title">AI 추천 인사이트</h3>
+          <div class="insight-list" id="insightList">
+            <span data-i18n="insight.loading">데이터를 불러오는 중입니다...</span>
+          </div>
+        </div>
+
+        <div id="feedStatus" class="empty-feed hidden"></div>
+        <div class="feed-list" id="feedList"></div>
+      </div>
+    </section>
   </div>
 
   <script type="module">
     import { argbFromHex, themeFromSourceColor, applyTheme } from "https://esm.run/@material/material-color-utilities";
 
-    const THEME_KEY = 'seaif_theme';
+    const THEME_KEY = 'kaief_theme';
+    const SEED_KEY = 'kaief_seed';
+    const LOCALE_KEY = 'kaief_locale';
+
+    const TRANSLATIONS = {
+      ko: {
+        'meta.title': 'KAIEF – 대한민국 행사 AI 파인더',
+        'brand.large': '대한민국 행사 AI 파인더',
+        'brand.small': 'KAIEF',
+        'lang.ko': '한국어',
+        'lang.en': 'English',
+        'hero.paragraph': '문화체육관광부 산하 국립기관 행사 정보를 AI로 큐레이션하고, 관심사 기반 맞춤 추천을 제공합니다.',
+        'hero.pill1': 'LLM + RAG 큐레이션',
+        'hero.pill2': '한국어 · English 서비스',
+        'hero.pill3': '시니어 음성 질의',
+        'hero.pill4': 'PWA & 실시간 크롤링',
+        'tab.chat': 'AI 챗봇',
+        'tab.feed': '행사 피드',
+        'assistant.badge': 'AI 어시스턴트',
+        'assistant.intro': '안녕하세요! 🎉<br/>대한민국 국립기관의 문화·예술 행사를 찾아드리는 KAIEF입니다. 시간, 관심사, 이동 수단을 알려주시면 맞춤 추천을 드릴게요.',
+        'chip.weekend': '🎪 이번 주말 추천',
+        'chip.family': '👨‍👩‍👧 가족 맞춤',
+        'chip.free': '💸 무료 전시',
+        'chip.global': '🌏 영어 안내 행사',
+        'chip.gugak': '🎼 국악 공연',
+        'composer.placeholder': '시간·관심사를 말씀해 주세요...',
+        'composer.send': '전송',
+        'fab.voice': '음성',
+        'fab.file': '파일',
+        'fab.photo': '사진',
+        'fab.location': '위치',
+        'chat.keywords': '🔎 추출된 키워드',
+        'chat.reason': '추천 이유',
+        'chat.error': '요청 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.',
+        'chat.typing': '입력 중...',
+        'voice.ready': '음성 인식이 준비되었어요. 천천히 말씀해 주세요!',
+        'voice.unsupported': '이 브라우저에서는 음성 인식이 지원되지 않습니다.',
+        'voice.result': '🎙️ 음성 입력: {text}',
+        'voice.error': '음성 인식 중 오류가 발생했어요.',
+        'feature.coming': '해당 기능은 준비 중입니다. 곧 만나보세요!',
+        'feed.badge': '맞춤 피드',
+        'feed.heading': '전국 문화·예술 행사 피드',
+        'feed.description': '국립중앙박물관, 국립중앙도서관, 국립현대미술관 등 주요 기관에서 수집한 실시간 행사입니다.',
+        'filter.institutions': '핵심 기관',
+        'filter.status': '진행 상태',
+        'filter.host.all': '전체',
+        'filter.host.nmk': '국립중앙박물관',
+        'filter.host.nlib': '국립중앙도서관',
+        'filter.host.mmca': '국립현대미술관',
+        'filter.host.gugak': '국립국악원',
+        'filter.host.folk': '국립민속박물관',
+        'filter.host.others': '기타 국립기관',
+        'filter.state.all': '전체',
+        'filter.state.open': '진행중',
+        'filter.state.upcoming': '예정',
+        'filter.state.closed': '마감',
+        'insight.title': 'AI 추천 인사이트',
+        'insight.loading': '데이터를 불러오는 중입니다...',
+        'insight.total': '조건에 맞는 문화·예술 행사 {count}건',
+        'insight.top': '가장 활발한 기관: {host} ({count}건)',
+        'insight.updated': '데이터 갱신: {time}',
+        'insight.realtime': 'LLM+RAG 기반으로 30분마다 자동 동기화됩니다.',
+        'feed.status.loading': '행사 데이터를 불러오는 중입니다...',
+        'feed.status.empty': '조건에 맞는 행사가 없습니다. 필터를 조정해 보세요.',
+        'feed.status.error': '행사 데이터를 불러오지 못했습니다.',
+        'card.untitled': '제목 미상',
+        'card.category': '분류',
+        'card.categoryFallback': '정보 없음',
+        'card.schedule': '일정',
+        'card.scheduleFallback': '정보 없음',
+        'card.location': '장소',
+        'card.locationFallback': '정보 없음',
+        'card.host': '주관',
+        'card.hostFallback': '정보 없음',
+        'card.status': '상태',
+        'card.link': '자세히 보기',
+        'state.open': '진행중',
+        'state.upcoming': '예정',
+        'state.closed': '마감',
+        'state.unknown': '정보 없음'
+      },
+      en: {
+        'meta.title': 'KAIEF – Korea Event AI Finder',
+        'brand.large': 'Korea Event AI Finder',
+        'brand.small': 'KAIEF',
+        'lang.ko': '한국어',
+        'lang.en': 'English',
+        'hero.paragraph': 'We fuse LLM + RAG to curate national cultural events and deliver precise, personalized recommendations.',
+        'hero.pill1': 'LLM + RAG Curation',
+        'hero.pill2': 'Korean · English service',
+        'hero.pill3': 'Voice support for seniors',
+        'hero.pill4': 'PWA & live crawling',
+        'tab.chat': 'AI Chatbot',
+        'tab.feed': 'Event Feed',
+        'assistant.badge': 'AI Assistant',
+        'assistant.intro': 'Hello! 🎉<br/>KAIEF connects you to cultural & arts programs from Korea’s national institutions. Share your time, interests, or travel plans and I will tailor recommendations.',
+        'chip.weekend': '🎪 Weekend picks',
+        'chip.family': '👨‍👩‍👧 Family mode',
+        'chip.free': '💸 Free exhibitions',
+        'chip.global': '🌏 English-friendly',
+        'chip.gugak': '🎼 Gugak performances',
+        'composer.placeholder': 'Tell me your available time or interests...',
+        'composer.send': 'Send',
+        'fab.voice': 'Voice',
+        'fab.file': 'File',
+        'fab.photo': 'Photo',
+        'fab.location': 'Location',
+        'chat.keywords': '🔎 Extracted keywords',
+        'chat.reason': 'Why we recommend',
+        'chat.error': 'Something went wrong. Please try again in a moment.',
+        'chat.typing': 'Typing...',
+        'voice.ready': 'Voice recognition is ready. Please speak clearly!',
+        'voice.unsupported': 'Voice recognition is not supported in this browser.',
+        'voice.result': '🎙️ Voice input: {text}',
+        'voice.error': 'We could not capture your voice input.',
+        'feature.coming': 'This feature is coming soon. Stay tuned!',
+        'feed.badge': 'Curated feed',
+        'feed.heading': 'Nationwide Culture & Arts Feed',
+        'feed.description': 'Live events sourced from national institutions including the National Museum of Korea, National Library of Korea, and MMCA.',
+        'filter.institutions': 'Key institutions',
+        'filter.status': 'Status',
+        'filter.host.all': 'All',
+        'filter.host.nmk': 'National Museum of Korea',
+        'filter.host.nlib': 'National Library of Korea',
+        'filter.host.mmca': 'MMCA',
+        'filter.host.gugak': 'National Gugak Center',
+        'filter.host.folk': 'National Folk Museum',
+        'filter.host.others': 'Other national orgs',
+        'filter.state.all': 'All',
+        'filter.state.open': 'Ongoing',
+        'filter.state.upcoming': 'Upcoming',
+        'filter.state.closed': 'Closed',
+        'insight.title': 'AI Insights',
+        'insight.loading': 'Loading event data...',
+        'insight.total': '{count} events match your filters',
+        'insight.top': 'Most active institution: {host} ({count})',
+        'insight.updated': 'Last updated: {time}',
+        'insight.realtime': 'Synced every 30 minutes via LLM + RAG pipeline.',
+        'feed.status.loading': 'Loading event data...',
+        'feed.status.empty': 'No events found. Try adjusting the filters.',
+        'feed.status.error': 'We were unable to load events.',
+        'card.untitled': 'Untitled event',
+        'card.category': 'Category',
+        'card.categoryFallback': 'N/A',
+        'card.schedule': 'Schedule',
+        'card.scheduleFallback': 'N/A',
+        'card.location': 'Venue',
+        'card.locationFallback': 'N/A',
+        'card.host': 'Host',
+        'card.hostFallback': 'N/A',
+        'card.status': 'Status',
+        'card.link': 'View details',
+        'state.open': 'Ongoing',
+        'state.upcoming': 'Upcoming',
+        'state.closed': 'Closed',
+        'state.unknown': 'N/A'
+      }
+    };
+
+    const HOST_LABELS = {
+      '국립중앙박물관': { en: 'National Museum of Korea' },
+      '국립중앙도서관': { en: 'National Library of Korea' },
+      '국립어린이청소년도서관': { en: 'National Library for Children and Young Adults' },
+      '국립현대미술관': { en: 'National Museum of Modern and Contemporary Art' },
+      '국립국악원': { en: 'National Gugak Center' },
+      '국립민속박물관': { en: 'National Folk Museum of Korea' },
+      '국립춘천박물관': { en: 'National Chuncheon Museum' },
+      '국립제주박물관': { en: 'National Jeju Museum' }
+    };
+
+    const CORE_HOSTS = {
+      nmk: ['국립중앙박물관'],
+      nlib: ['국립중앙도서관', '국립어린이청소년도서관'],
+      mmca: ['국립현대미술관'],
+      gugak: ['국립국악원'],
+      folk: ['국립민속박물관']
+    };
+
     const root = document.documentElement;
     const appBar = document.getElementById('appBar');
     const themeToggle = document.getElementById('themeToggle');
     const sun = document.getElementById('sun');
     const moon = document.getElementById('moon');
+    const paletteBtn = document.getElementById('paletteBtn');
+    const brandPanel = document.getElementById('brandPanel');
+    const customSeed = document.getElementById('customSeed');
+    const customSeedHex = document.getElementById('customSeedHex');
+    const applySeed = document.getElementById('applySeed');
+    const chatView = document.getElementById('chatView');
+    const feedView = document.getElementById('feedView');
+    const chatList = document.getElementById('chatList');
+    const input = document.getElementById('input');
+    const send = document.getElementById('send');
+    const sendLabel = send.querySelector('.label');
+    const chips = document.getElementById('chips');
+    const fabDial = document.getElementById('fabDial');
+    const moreBtn = document.getElementById('moreBtn');
+    const moreWrap = document.getElementById('moreWrap');
+    const languageButtons = document.querySelectorAll('[data-locale]');
+    const viewButtons = document.querySelectorAll('[data-view]');
+    const hostFilters = document.getElementById('hostFilters');
+    const stateFilters = document.getElementById('stateFilters');
+    const feedList = document.getElementById('feedList');
+    const feedStatus = document.getElementById('feedStatus');
+    const insightList = document.getElementById('insightList');
 
-    let currentSeed = localStorage.getItem('seaif_seed') || '#6366F1';
+    let currentSeed = localStorage.getItem(SEED_KEY) || '#6366F1';
+    let currentLocale = localStorage.getItem(LOCALE_KEY) || 'ko';
+    let feedLoaded = false;
+    let eventsData = [];
+    let eventsUpdatedAt = null;
+    let activeHost = 'all';
+    let activeState = 'all';
+    let typingEl = null;
+    let dialOpen = false;
+    let feedStatusType = 'none';
+    let feedStatusExtra = '';
 
-    function isDark(){ return root.getAttribute('data-theme') === 'dark'; }
+    function getDict(){
+      return TRANSLATIONS[currentLocale] || TRANSLATIONS.ko;
+    }
+
+    function formatString(template, values = {}){
+      return template.replace(/\{(.*?)\}/g, (_, key) => values[key] ?? '');
+    }
+
+    function escapeHTML(str){
+      return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[m]));
+    }
+
+    function localizeHost(name){
+      if (!name) return '';
+      const entry = HOST_LABELS[name];
+      if (currentLocale === 'en' && entry && entry.en){
+        return `${entry.en} (${name})`;
+      }
+      return name;
+    }
+
+    function formatUpdatedAt(value){
+      if (!value) return '';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '';
+      const locale = currentLocale === 'en' ? 'en-US' : 'ko-KR';
+      return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+    }
+
+    function isDark(){
+      return root.getAttribute('data-theme') === 'dark';
+    }
 
     function applyThemeFromSeed(hex){
       try {
@@ -296,59 +639,115 @@
         applyTheme(theme, { target: root, dark: isDark() });
         document.documentElement.style.setProperty('--gradient-primary', `linear-gradient(135deg, var(--md-sys-color-primary) 0%, color-mix(in oklab, var(--md-sys-color-primary) 85%, #ffffff) 50%, color-mix(in oklab, var(--md-sys-color-primary) 70%, #ffffff) 100%)`);
         currentSeed = hex;
-        localStorage.setItem('seaif_seed', hex);
-      } catch(e) { console.warn('Dynamic color apply failed', e); }
+        localStorage.setItem(SEED_KEY, hex);
+      } catch (error) {
+        console.warn('Dynamic color apply failed', error);
+      }
     }
 
-    function applyThemeMode(theme){
-      root.setAttribute('data-theme', theme);
-      localStorage.setItem(THEME_KEY, theme);
-      const dark = theme === 'dark';
-      sun.style.display = dark ? 'none':'block';
-      moon.style.display = dark ? 'block':'none';
+    function applyThemeMode(mode){
+      root.setAttribute('data-theme', mode);
+      localStorage.setItem(THEME_KEY, mode);
+      const dark = mode === 'dark';
+      sun.style.display = dark ? 'none' : 'block';
+      moon.style.display = dark ? 'block' : 'none';
       applyThemeFromSeed(currentSeed);
     }
 
-    applyThemeMode(localStorage.getItem(THEME_KEY) || 'light');
-    applyThemeFromSeed(currentSeed);
+    function translateDocument(){
+      const dict = getDict();
+      document.title = dict['meta.title'];
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key && dict[key] !== undefined){
+          el.innerHTML = dict[key];
+        }
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (key && dict[key] !== undefined){
+          el.setAttribute('placeholder', dict[key]);
+        }
+      });
+      languageButtons.forEach(button => {
+        button.classList.toggle('active', button.dataset.locale === currentLocale);
+      });
+      chips.querySelectorAll('.chip').forEach(button => {
+        const key = currentLocale === 'en' ? 'textEn' : 'textKo';
+        if (button.dataset[key]){
+          button.dataset.text = button.dataset[key];
+        }
+      });
+      if (feedStatusType !== 'none'){
+        setFeedStatus(feedStatusType, feedStatusExtra);
+      }
+    }
 
-    themeToggle.addEventListener('click',()=>{ applyThemeMode(isDark() ? 'light' : 'dark'); });
+    function applyLocale(locale){
+      if (!TRANSLATIONS[locale]) locale = 'ko';
+      currentLocale = locale;
+      localStorage.setItem(LOCALE_KEY, locale);
+      document.documentElement.lang = locale === 'en' ? 'en' : 'ko';
+      translateDocument();
+      updateSend();
+      if (feedLoaded) renderFeed();
+    }
 
-    const chatList = document.getElementById('chatList');
-    chatList.addEventListener('scroll', ()=>{ if (chatList.scrollTop > 6) appBar.classList.add('compact'); else appBar.classList.remove('compact'); });
+    function setFeedStatus(type, extra = ''){
+      const dict = getDict();
+      feedStatusType = type;
+      feedStatusExtra = extra;
+      if (type === 'none'){
+        feedStatus.classList.add('hidden');
+        feedStatus.textContent = '';
+        return;
+      }
+      feedStatus.classList.remove('hidden');
+      let message = dict[`feed.status.${type}`] || '';
+      if (type === 'error' && extra){
+        message += ` (${extra})`;
+      }
+      feedStatus.textContent = message;
+    }
 
-    const paletteBtn = document.getElementById('paletteBtn');
-    const brandPanel = document.getElementById('brandPanel');
-    const customSeed = document.getElementById('customSeed');
-    const customSeedHex = document.getElementById('customSeedHex');
-    const applySeed = document.getElementById('applySeed');
+    function normalizeState(value){
+      if (!value) return 'unknown';
+      const text = String(value).toLowerCase();
+      if (['진행', '상시', '운영', 'ongoing', 'run'].some(token => text.includes(token))) return 'open';
+      if (['예정', '모집', '접수', 'upcoming', 'open soon'].some(token => text.includes(token))) return 'upcoming';
+      if (['마감', '종료', '완료', 'closed', 'end'].some(token => text.includes(token))) return 'closed';
+      return 'unknown';
+    }
 
-    function togglePanel(){ brandPanel.classList.toggle('open'); }
-    paletteBtn.addEventListener('click', (e)=>{ e.stopPropagation(); togglePanel(); });
-    document.addEventListener('click', (e)=>{ if(!brandPanel.contains(e.target) && e.target !== paletteBtn){ brandPanel.classList.remove('open'); }});
+    function matchesHost(event){
+      const host = event.host || '';
+      if (activeHost === 'all') return true;
+      if (activeHost === 'others'){
+        return !Object.values(CORE_HOSTS).some(names => names.some(name => host.includes(name)));
+      }
+      const names = CORE_HOSTS[activeHost];
+      if (names){
+        return names.some(name => host.includes(name));
+      }
+      return host.includes(activeHost);
+    }
 
-    brandPanel.addEventListener('click', (e)=>{ const btn = e.target.closest('.chip'); if(btn && btn.dataset.seed){ customSeed.value = btn.dataset.seed; customSeedHex.value = btn.dataset.seed; applyThemeFromSeed(btn.dataset.seed); }});
-    customSeed.addEventListener('input', ()=>{ customSeedHex.value = customSeed.value; });
-    customSeedHex.addEventListener('input', ()=>{ if(/^#([0-9a-fA-F]{6})$/.test(customSeedHex.value)) customSeed.value = customSeedHex.value; });
-    applySeed.addEventListener('click', ()=>{ if(/^#([0-9a-fA-F]{6})$/.test(customSeed.value)) applyThemeFromSeed(customSeed.value); });
-
-    const input = document.getElementById('input');
-    const send = document.getElementById('send');
-    const chips = document.getElementById('chips');
-
-    function escapeHTML(str){ return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[m])); }
+    function matchesState(event){
+      if (activeState === 'all') return true;
+      return normalizeState(event.state) === activeState;
+    }
 
     function updateSend(){
+      const dict = getDict();
       const hasText = input.value.trim().length > 0;
       send.setAttribute('data-compact', hasText ? 'false' : 'true');
-
-      const labelEl = send.querySelector('.label');
-      if (labelEl) labelEl.setAttribute('aria-hidden', hasText ? 'false' : 'true');
+      sendLabel.textContent = dict['composer.send'];
+      if (hasText){
+        sendLabel.removeAttribute('aria-hidden');
+      } else {
+        sendLabel.setAttribute('aria-hidden', 'true');
+      }
     }
-    input.addEventListener('input', updateSend);
-    input.addEventListener('keydown', (e)=>{ if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); sendMessage(); } });
-    send.addEventListener('click', sendMessage);
-    chips.addEventListener('click', (e)=>{ const btn = e.target.closest('.chip'); if(!btn) return; input.value = btn.dataset.text || ''; updateSend(); input.focus(); });
 
     function addBubble(role, html){
       const row = document.createElement('div');
@@ -358,15 +757,15 @@
       chatList.scrollTo({ top: chatList.scrollHeight, behavior: 'smooth' });
     }
 
-    let typingEl = null;
     function showTyping(){
+      const dict = getDict();
       const row = document.createElement('div');
       row.className = 'flex justify-start';
       row.innerHTML = `
         <div class="bubble assistant">
           <div class="flex items-center gap-2 mb-2">
             <div class="w-5 h-5 rounded-full" style="background:linear-gradient(90deg,#34D399,#06B6D4)"></div>
-            <span class="text-xs opacity-70">입력 중...</span>
+            <span class="text-xs opacity-70">${escapeHTML(dict['chat.typing'])}</span>
           </div>
           <div class="dots"><span></span><span></span><span></span></div>
         </div>`;
@@ -374,101 +773,350 @@
       typingEl = row;
       chatList.scrollTo({ top: chatList.scrollHeight, behavior: 'smooth' });
     }
-    function hideTyping(){ if (typingEl) typingEl.remove(); typingEl = null; }
 
-    // 행사 카드 렌더링
-    function renderEventCard(ev){
-      if(!ev || Object.keys(ev).length === 0){
-        return `<div class="text-sm opacity-80">관련된 행사를 찾지 못했어요. 키워드를 조금 바꿔보시겠어요? (예: 날짜/지역/분야 추가)</div>`;
-      }
-      const title = escapeHTML(ev.title || '제목 미상');
-      const category = escapeHTML(ev.category || '분류 정보 없음');
-      const date = escapeHTML(ev.date || ev.datetime || ev.period || '일정 정보 없음');
-      const location = escapeHTML(ev.location || ev.place || '장소 정보 없음');
-      const desc = escapeHTML(ev.deep_data || ev.description || '');
-
-      return `
-      <div class="mt-2 p-3 rounded-[16px] border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-low)] shadow-sm">
-        <div class="text-base font-semibold mb-1" style="letter-spacing:-0.01em">${title}</div>
-        <div class="flex flex-wrap gap-x-3 gap-y-1 text-sm opacity-80">
-          <div>📂 ${category}</div>
-          <div>📅 ${date}</div>
-          <div>📍 ${location}</div>
-        </div>
-        ${desc ? `<div class="mt-2 text-sm leading-6">${desc}</div>` : ``}
-      </div>`;
+    function hideTyping(){
+      if (typingEl) typingEl.remove();
+      typingEl = null;
     }
 
-    function renderKeywords(kw = []){
-      if(!kw || kw.length === 0) return '';
-      const pills = kw.slice(0,8).map(k => `<span class="px-2 py-1 rounded-full border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container)] text-xs">${escapeHTML(k)}</span>`).join(' ');
+    function renderKeywords(keywords = []){
+      if (!keywords || keywords.length === 0) return '';
+      const pills = keywords.slice(0, 8).map(keyword => `<span class="px-2 py-1 rounded-full border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container)] text-xs">${escapeHTML(keyword)}</span>`).join(' ');
       return `<div class="mt-2 flex flex-wrap gap-1 items-center">${pills}</div>`;
     }
 
-    async function sendMessage(){
-      const text = input.value.trim();
-      if(!text) return;
+    function renderEventCard(event){
+      const dict = getDict();
+      if (!event || Object.keys(event).length === 0){
+        return `<div class="text-sm opacity-80">${escapeHTML(dict['feed.status.empty'])}</div>`;
+      }
+      const title = escapeHTML(event.title || dict['card.untitled']);
+      const host = escapeHTML(localizeHost(event.host || dict['card.hostFallback']));
+      const category = escapeHTML(event.category || dict['card.categoryFallback']);
+      const schedule = escapeHTML(event.date || event.datetime || event.period || dict['card.scheduleFallback']);
+      const location = escapeHTML(event.location || event.place || dict['card.locationFallback']);
+      const description = escapeHTML(event.deep_data || event.description || '');
+      const url = event.url ? escapeHTML(event.url) : '';
+      return `
+        <div class="mt-2 p-3 rounded-[16px] border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-low)] shadow-sm">
+          <div class="text-base font-semibold mb-1" style="letter-spacing:-0.01em">${title}</div>
+          <div class="flex flex-wrap gap-x-3 gap-y-1 text-sm opacity-80">
+            <div>🏛️ ${dict['card.host']} · ${host}</div>
+            <div>📂 ${dict['card.category']} · ${category}</div>
+            <div>📅 ${dict['card.schedule']} · ${schedule}</div>
+            <div>📍 ${dict['card.location']} · ${location}</div>
+          </div>
+          ${description ? `<div class="mt-2 text-sm leading-6">${description}</div>` : ''}
+          ${url ? `<a class="mt-2 inline-flex text-sm font-semibold text-[var(--md-sys-color-primary)]" href="${url}" target="_blank" rel="noopener noreferrer">${dict['card.link']}</a>` : ''}
+        </div>`;
+    }
 
-      // 사용자 말풍선
+    async function sendMessage(){
+      const dict = getDict();
+      const text = input.value.trim();
+      if (!text) return;
+
       addBubble('user', escapeHTML(text));
       input.value = '';
       updateSend();
-
-      // 타이핑 표시
       showTyping();
 
-      try{
-        const res = await fetch('/chat', {
+      try {
+        const response = await fetch('/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: text })
         });
-
-        const data = await res.json();
+        const data = await response.json();
         hideTyping();
-
-        // 백엔드 응답 스키마에 맞춰 파싱
         const payload = data.response || {};
         const keywords = payload.keywords || [];
         const event = payload.recommended_event || {};
         const reason = payload.reason;
 
-        // 어시스턴트 말풍선 콘텐츠 조립
         let html = '';
-        if (keywords && keywords.length){
-          html += `<div class="text-sm opacity-70 mb-1">🔎 추출된 키워드</div>${renderKeywords(keywords)}`;
+        if (keywords.length){
+          html += `<div class="text-sm opacity-70 mb-1">${escapeHTML(dict['chat.keywords'])}</div>${renderKeywords(keywords)}`;
         }
         if (reason){
-          html += `<div class="mt-3">${escapeHTML(reason)}</div>`;
+          html += `<div class="mt-3 text-sm opacity-80">${escapeHTML(dict['chat.reason'])}</div><div class="mt-1">${escapeHTML(reason)}</div>`;
         }
         html += renderEventCard(event);
-
         addBubble('assistant', html);
-
-      } catch(err){
+      } catch (error){
         hideTyping();
-        addBubble('assistant', `
-          <div class="text-sm">요청 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.</div>
-          <div class="mt-2 text-xs opacity-70">${escapeHTML(String(err))}</div>
-        `);
+        addBubble('assistant', `<div class="text-sm">${escapeHTML(dict['chat.error'])}</div><div class="mt-2 text-xs opacity-70">${escapeHTML(String(error))}</div>`);
       }
     }
 
+    function createFeedCard(event){
+      const dict = getDict();
+      const card = document.createElement('article');
+      card.className = 'feed-card';
+      const title = escapeHTML(event.title || dict['card.untitled']);
+      const host = escapeHTML(localizeHost(event.host || dict['card.hostFallback']));
+      const schedule = escapeHTML(event.period || event.date || event.datetime || dict['card.scheduleFallback']);
+      const location = escapeHTML(event.place || event.location || dict['card.locationFallback']);
+      const statusKey = normalizeState(event.state);
+      const statusLabel = dict[`state.${statusKey}`] || dict['state.unknown'];
+      const description = escapeHTML(event.description || event.deep_data || '');
+      card.innerHTML = `
+        <h3>${title}</h3>
+        <div class="meta">
+          <span>🏛️ ${dict['card.host']} · ${host}</span>
+          <span>📅 ${dict['card.schedule']} · ${schedule}</span>
+          <span>📍 ${dict['card.location']} · ${location}</span>
+          <span>🔖 ${dict['card.status']} · ${statusLabel}</span>
+        </div>
+        ${description ? `<p class="text-sm leading-6">${description}</p>` : ''}
+      `;
+      if (event.url){
+        const link = document.createElement('a');
+        link.href = event.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = dict['card.link'];
+        card.appendChild(link);
+      }
+      return card;
+    }
+
+    function renderInsights(events){
+      const dict = getDict();
+      insightList.innerHTML = '';
+      const total = document.createElement('div');
+      total.textContent = formatString(dict['insight.total'], { count: events.length });
+      insightList.appendChild(total);
+
+      if (events.length){
+        const hostCounts = new Map();
+        events.forEach(event => {
+          const name = event.host || dict['card.hostFallback'];
+          hostCounts.set(name, (hostCounts.get(name) || 0) + 1);
+        });
+        let topHost = '';
+        let topCount = 0;
+        for (const [name, count] of hostCounts.entries()){
+          if (count > topCount){
+            topHost = name;
+            topCount = count;
+          }
+        }
+        const hostLine = document.createElement('div');
+        hostLine.textContent = formatString(dict['insight.top'], { host: localizeHost(topHost), count: topCount });
+        insightList.appendChild(hostLine);
+      }
+
+      const updated = formatUpdatedAt(eventsUpdatedAt);
+      if (updated){
+        const updatedLine = document.createElement('div');
+        updatedLine.textContent = formatString(dict['insight.updated'], { time: updated });
+        insightList.appendChild(updatedLine);
+      }
+
+      const realtime = document.createElement('div');
+      realtime.textContent = dict['insight.realtime'];
+      insightList.appendChild(realtime);
+    }
+
+    function renderFeed(){
+      if (!feedLoaded) return;
+      const filtered = eventsData.filter(event => matchesHost(event) && matchesState(event));
+      feedList.innerHTML = '';
+      if (!filtered.length){
+        setFeedStatus('empty');
+      } else {
+        setFeedStatus('none');
+        filtered.forEach(event => feedList.appendChild(createFeedCard(event)));
+      }
+      renderInsights(filtered);
+    }
+
+    async function ensureFeedLoaded(){
+      if (feedLoaded){
+        renderFeed();
+        return;
+      }
+      setFeedStatus('loading');
+      try {
+        const response = await fetch('/events');
+        if (!response.ok) throw new Error(response.statusText);
+        const data = await response.json();
+        eventsData = Array.isArray(data.events) ? data.events : [];
+        eventsUpdatedAt = data.updatedAt || null;
+        feedLoaded = true;
+        renderFeed();
+      } catch (error){
+        console.error('Failed to load events', error);
+        setFeedStatus('error', error.message);
+      }
+    }
+
+    function handleFabAction(action){
+      const dict = getDict();
+      if (action === 'voice'){
+        startVoiceCapture();
+        return;
+      }
+      addBubble('assistant', `<div class="text-sm">${escapeHTML(dict['feature.coming'])}</div>`);
+    }
+
+    function startVoiceCapture(){
+      const dict = getDict();
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition){
+        addBubble('assistant', `<div class="text-sm">${escapeHTML(dict['voice.unsupported'])}</div>`);
+        return;
+      }
+      const recognition = new SpeechRecognition();
+      recognition.lang = currentLocale === 'en' ? 'en-US' : 'ko-KR';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.onstart = () => {
+        addBubble('assistant', `<div class="text-sm">${escapeHTML(dict['voice.ready'])}</div>`);
+      };
+      recognition.onerror = () => {
+        addBubble('assistant', `<div class="text-sm">${escapeHTML(dict['voice.error'])}</div>`);
+      };
+      recognition.onresult = event => {
+        const transcript = event.results?.[0]?.[0]?.transcript?.trim();
+        if (!transcript) return;
+        addBubble('assistant', `<div class="text-sm">${escapeHTML(formatString(dict['voice.result'], { text: transcript }))}</div>`);
+        input.value = transcript;
+        updateSend();
+        sendMessage();
+      };
+      recognition.start();
+    }
+
+    function setActiveView(view){
+      viewButtons.forEach(button => button.classList.toggle('active', button.dataset.view === view));
+      if (view === 'feed'){
+        chatView.classList.remove('active');
+        feedView.classList.add('active');
+        ensureFeedLoaded();
+      } else {
+        feedView.classList.remove('active');
+        chatView.classList.add('active');
+      }
+    }
+
+    chatList.addEventListener('scroll', () => {
+      if (chatList.scrollTop > 6) appBar.classList.add('compact');
+      else appBar.classList.remove('compact');
+    });
+
+    themeToggle.addEventListener('click', () => {
+      applyThemeMode(isDark() ? 'light' : 'dark');
+    });
+
+    paletteBtn.addEventListener('click', event => {
+      event.stopPropagation();
+      brandPanel.classList.toggle('open');
+    });
+
+    document.addEventListener('click', event => {
+      if (!brandPanel.contains(event.target) && event.target !== paletteBtn){
+        brandPanel.classList.remove('open');
+      }
+      if (dialOpen && !moreWrap.contains(event.target)){
+        dialOpen = false;
+        fabDial.classList.remove('open');
+      }
+    });
+
+    brandPanel.addEventListener('click', event => {
+      const target = event.target.closest('.chip');
+      if (!target || !target.dataset.seed) return;
+      customSeed.value = target.dataset.seed;
+      customSeedHex.value = target.dataset.seed;
+      applyThemeFromSeed(target.dataset.seed);
+    });
+
+    customSeed.addEventListener('input', () => {
+      customSeedHex.value = customSeed.value;
+    });
+
+    customSeedHex.addEventListener('input', () => {
+      if (/^#([0-9a-fA-F]{6})$/.test(customSeedHex.value)){
+        customSeed.value = customSeedHex.value;
+      }
+    });
+
+    applySeed.addEventListener('click', () => {
+      if (/^#([0-9a-fA-F]{6})$/.test(customSeed.value)){
+        applyThemeFromSeed(customSeed.value);
+      }
+    });
+
+    input.addEventListener('input', updateSend);
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.shiftKey && !event.isComposing){
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+    send.addEventListener('click', sendMessage);
+
+    chips.addEventListener('click', event => {
+      const button = event.target.closest('.chip');
+      if (!button) return;
+      input.value = button.dataset.text || '';
+      updateSend();
+      input.focus();
+    });
+
+    moreBtn.addEventListener('click', event => {
+      event.stopPropagation();
+      dialOpen = !dialOpen;
+      fabDial.classList.toggle('open', dialOpen);
+    });
+
+    fabDial.addEventListener('click', event => {
+      const button = event.target.closest('.mini-fab');
+      if (!button) return;
+      handleFabAction(button.dataset.action);
+      dialOpen = false;
+      fabDial.classList.remove('open');
+    });
+
+    const resizeObserver = new ResizeObserver(() => {
+      dialOpen = false;
+      fabDial.classList.remove('open');
+    });
+    resizeObserver.observe(document.body);
+
+    languageButtons.forEach(button => {
+      button.addEventListener('click', () => applyLocale(button.dataset.locale));
+    });
+
+    viewButtons.forEach(button => {
+      button.addEventListener('click', () => setActiveView(button.dataset.view));
+    });
+
+    hostFilters.addEventListener('click', event => {
+      const button = event.target.closest('.filter-chip');
+      if (!button) return;
+      hostFilters.querySelectorAll('.filter-chip').forEach(node => node.classList.remove('active'));
+      button.classList.add('active');
+      activeHost = button.dataset.host || 'all';
+      renderFeed();
+    });
+
+    stateFilters.addEventListener('click', event => {
+      const button = event.target.closest('.filter-chip');
+      if (!button) return;
+      stateFilters.querySelectorAll('.filter-chip').forEach(node => node.classList.remove('active'));
+      button.classList.add('active');
+      activeState = button.dataset.state || 'all';
+      renderFeed();
+    });
+
+    applyThemeMode(localStorage.getItem(THEME_KEY) || 'light');
+    applyThemeFromSeed(currentSeed);
+    applyLocale(currentLocale);
     updateSend();
-
-    // ====== FAB Speed Dial logic (anchored) ======
-    const fabDial = document.getElementById('fabDial');
-    const moreBtn = document.getElementById('moreBtn');
-    const moreWrap = document.getElementById('moreWrap');
-
-    let dialOpen = false;
-    function toggleDial(force){ dialOpen = typeof force === 'boolean' ? force : !dialOpen; fabDial.classList.toggle('open', dialOpen); }
-    moreBtn.addEventListener('click', (e)=>{ e.stopPropagation(); toggleDial(); });
-    document.addEventListener('click', (e)=>{ if(dialOpen && !moreWrap.contains(e.target)){ toggleDial(false); } });
-
-    // Close on viewport or IME resize (to avoid awkward overlaps)
-    const ro = new ResizeObserver(()=>{ toggleDial(false); });
-    ro.observe(document.body);
+    setActiveView('chat');
   </script>
 </body>
 </html>
