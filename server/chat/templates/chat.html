@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>KAIEF – 대한민국 행사 AI 파인더</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Material 3 Expressive-friendly fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght,GRAD,slnt,YOPQ@8..144,300..900,-200..150,-12..0,25..135&family=Noto+Sans+KR:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}" />
+</head>
+<body>
+  <div class="app">
+    <header id="appBar" class="app-bar">
+      <div class="flex items-center justify-between">
+        <div class="brand">
+          <div class="brand-badge" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" role="img">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </div>
+          <div class="brand-title">
+            <span class="large" data-i18n="brandLarge">대한민국 행사 AI 파인더</span>
+            <span class="small" data-i18n="brandSmall">KAIEF</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="paletteBtn" class="icon-button" aria-label="브랜드 색 설정">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22a5 5 0 01-5-5 7 7 0 117 7z"/><circle cx="6.5" cy="11.5" r="1.5"/><circle cx="9.5" cy="7.5" r="1.5"/><circle cx="14.5" cy="7.5" r="1.5"/><circle cx="17.5" cy="11.5" r="1.5"/></svg>
+          </button>
+          <button id="themeToggle" class="icon-button theme-toggle" aria-label="테마 전환">
+            <svg id="sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            <svg id="moon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="app-controls">
+        <!-- 페이지 링크 기반 네비게이션 -->
+        <div class="tab-group" role="tablist">
+          <a id="navChat" href="{{ url_for('chat_page') }}" class="tab active" role="tab" aria-selected="true" aria-current="page" data-i18n="navChat">AI 챗봇</a>
+          <a id="navFeed" href="{{ url_for('feed_page') }}" class="tab" role="tab" aria-selected="false" data-i18n="navFeed">행사 피드</a>
+        </div>
+        <button id="languageToggle" type="button" class="chip language-toggle" aria-label="언어 전환">EN</button>
+      </div>
+
+      <div id="brandPanel" class="popover">
+        <div class="text-sm font-semibold mb-2">브랜드 컬러 (씨앗) 선택</div>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <button class="chip" data-seed="#6366F1">Indigo (기본)</button>
+          <button class="chip" data-seed="#0EA5E9">Cyan</button>
+          <button class="chip" data-seed="#10B981">Emerald</button>
+          <button class="chip" data-seed="#8B5CF6">Purple</button>
+        </div>
+        <label class="text-sm block mb-2">사용자 지정 색상</label>
+        <div class="flex items-center gap-3">
+          <input id="customSeed" type="color" value="#6366F1" class="w-10 h-10 rounded-[12px] border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container)]"/>
+          <input id="customSeedHex" type="text" value="#6366F1" class="flex-1 text-sm px-2 py-2 rounded-[10px] border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-low)]"/>
+          <button id="applySeed" class="chip">적용</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== 채팅 페이지 본문 ===== -->
+    <main class="chat" id="chatView" role="main">
+      <div id="chatList" class="chat-list">
+        <div class="flex justify-start">
+          <div class="bubble assistant" id="introBubble">
+            <div class="assistant-header">
+              <div class="w-6 h-6 rounded-full" style="background:linear-gradient(90deg,#34D399,#06B6D4)"></div>
+              <span id="introBadge" class="text-xs opacity-70 font-medium">AI 어시스턴트</span>
+            </div>
+            <div id="introText" class="leading-6 text-[15px]">안녕하세요! 🎉<br/>대한민국의 다양한 행사와 이벤트 정보를 찾아드립니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <button id="scrollToBottom" class="scroll-to-bottom" aria-label="최신 메시지로 이동">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m7-7l-7 7-7-7"/></svg>
+      </button>
+
+      <div class="composer">
+        <div class="chip-label" id="chipLabel" data-i18n="chipLabel">빠른 질문</div>
+        <div class="chips" id="chips"></div>
+
+        <div class="composer-row">
+          <div id="moreWrap" class="relative">
+            <button id="moreBtn" class="icon-button" aria-label="추가 옵션">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            </button>
+            <div id="fabDial" class="fab-dial" aria-label="빠른 작업 메뉴">
+              <button class="mini-fab" data-action="attach-file" title="파일 첨부" aria-label="파일 첨부">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-8.49 8.49a5 5 0 01-7.07-7.07l8.49-8.49a3 3 0 114.24 4.24l-8.49 8.49a1 1 0 11-1.41-1.41l8.49-8.49"/></svg>
+                <span class="fab-label">파일</span>
+              </button>
+              <button class="mini-fab" data-action="attach-photo" title="사진 첨부" aria-label="사진 첨부">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16v10H4z"/><path d="M9 13l2-2 2 2 3-3 3 3"/></svg>
+                <span class="fab-label">사진</span>
+              </button>
+              <button class="mini-fab" data-action="share-location" title="현재 위치 추가" aria-label="현재 위치 추가">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 2v2m0 12v6m10-10h-2M4 12H2m14.24 5.76l-1.42-1.42M7.17 5.17L5.76 3.76"/></svg>
+                <span class="fab-label">위치</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <input id="input" class="input" placeholder="무엇이든 물어보세요..." maxlength="500" />
+            <span id="charCounter" class="char-counter">0/500</span>
+          </div>
+          <button id="send" class="send" data-compact="true" aria-label="메시지 전송">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.4-8.4c.5-.2.5-.9 0-1.2L3.4 2.4c-.5-.2-1 .2-1 .7v5.5c0 .3.2.6.5.6l8.6.9c.2 0 .2.2 0 .3l-8.6.9c-.3 0-.5.3-.5.6V19.7c0 .5.4 1 1 .7z"/></svg>
+            <span class="label" data-i18n="sendLabel">전송</span>
+          </button>
+        </div>
+        <div id="inputHint" class="input-hint">Enter로 전송 · Shift+Enter로 줄바꿈</div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="{{ url_for('static', path='js/app-common.js') }}"></script>
+  <script type="module" src="{{ url_for('static', path='js/app-chat.js') }}"></script>
+</body>
+</html>

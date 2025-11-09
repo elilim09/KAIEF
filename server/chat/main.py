@@ -1,23 +1,51 @@
+# main.py
 import json
 import os
+from typing import List, Tuple, Optional
+import aiofiles
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-import aiofiles
 from openai import AsyncOpenAI
+from dotenv import load_dotenv
 
+# =========================
+# App / Templates / Static
+# =========================
 app = FastAPI()
+load_dotenv()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+# 정적 파일 및 템플릿 경로
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 
-openai_client = AsyncOpenAI(api_key='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') 
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
-events_data = []
+# =========================
+# Config (ENV 권장)
+# =========================
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # 환경변수로 주입 권장
+EVENTS_JSON_PATH = os.getenv(
+    "EVENTS_JSON_PATH",
+    os.path.join(BASE_DIR, "events.json")  # 기본: 서버 기준 ./events.json
+)
+
+openai_client: Optional[AsyncOpenAI] = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+
+# =========================
+# In-memory cache
+# =========================
+events_data: List[dict] = []
 
 
-def build_reason(event, keywords):
+# =========================
+# Helpers
+# =========================
+def build_reason(event: Optional[dict], keywords: List[str]) -> dict:
+    """추천 사유 텍스트(ko/en) 구성"""
     if not event:
         return {
             "ko": "요청과 일치하는 행사를 찾지 못했습니다. 다른 조건으로 다시 시도해보세요.",
@@ -29,7 +57,7 @@ def build_reason(event, keywords):
     period = event.get("period") or event.get("date") or event.get("datetime") or ""
     host = event.get("host") or event.get("organization") or ""
 
-    top_keywords = [k for k in keywords if k][:3]
+    top_keywords = [k for k in (keywords or []) if k][:3]
     keyword_str = ", ".join(top_keywords)
 
     reason_ko = []
@@ -57,53 +85,23 @@ def build_reason(event, keywords):
     reason_ko.append("자세한 사항은 행사 링크에서 확인해보세요.")
     reason_en.append("Check the event link for more details.")
 
-    return {
-        "ko": " ".join(reason_ko),
-        "en": " ".join(reason_en)
-    }
+    return {"ko": " ".join(reason_ko), "en": " ".join(reason_en)}
 
-@app.on_event("startup")
-async def load_events_data():
-    global events_data
-    try:
-        async with aiofiles.open('../events.json', mode='r', encoding='utf-8') as f:
-            content = await f.read()
-            events_data = json.loads(content)
-    except FileNotFoundError:
-        events_data = []
-        print("events.json 파일을 찾을 수 없습니다.")
-    except json.JSONDecodeError:
-        events_data = []
-        print("events.json 디코딩 중 오류가 발생했습니다.")
 
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def extract_keywords_with_openai(raw_message: str) -> List[str]:
+    """
+    OpenAI를 사용해 정규화 키워드 추출.
+    OPENAI_API_KEY 미설정 시, 간단 폴백(띄어쓰기 기반 상위 몇 개 단어) 사용.
+    """
+    # 폴백: 키워드 간단 분리
+    if not openai_client:
+        words = [w.strip() for w in raw_message.split() if len(w.strip()) >= 2]
+        # 너무 일반적인 단어 제거(간단 룰)
+        stop = {"행사", "추천", "알려줘", "찾아줘", "있을까", "좀", "요", "은", "는", "이", "가"}
+        keywords = [w for w in words if w not in stop][:6]
+        return keywords or ([raw_message] if raw_message else [])
 
-@app.post("/chat")
-async def chat(request: Request):
-    data = await request.json()
-    raw_message = (data.get("message") or "").strip()
-    user_message = raw_message.lower()
-
-    if not raw_message:
-        return {
-            "response": {
-                "keywords": [],
-                "recommended_event": {},
-                "reason": {
-                    "ko": "메시지를 입력해주세요.",
-                    "en": "Please enter a message to begin."
-                }
-            }
-        }
-
-    try:
-        # OpenAI API로 키워드/카테고리 정규화 추출 (Few-shot 적용)
-        messages = [
-            {
-                "role": "system",
-                "content": """
+    system_prompt = """
 당신은 행사 추천 시스템을 위한 '키워드 정규화 추출기'입니다.
 반드시 JSON 객체만 반환합니다.
 
@@ -120,165 +118,169 @@ async def chat(request: Request):
   "excluded": ["(선택) 제외해야 할 것(부정 표현)"]
 }
 
-[정규화 규칙]
-- 소문자화하되 고유명사(예: 성남아트센터, 분당구)는 원형 유지.
-- 날짜/기간 언급은 의미 키워드로 환원: 오늘/주말/이번주/이번달 → ["주말","이번주","이번달"] 등
-- 비용: 무료/유료/할인 → ["무료"] 또는 ["유료"] 중 하나
-- 공간유형: 실내/실외/야외/온라인 → ["실내"] / ["야외"] / ["온라인"]
-- 대상/연령: 가족/아이/어린이/초등/중등/고등/성인/시니어 → ["가족","어린이","초등학생","청소년","고등학생","성인","어르신"] 등으로 표준화
-- 활동유형: 체험/공연/전시/강연/교육/공모/대회/봉사/캠프/워크숍 등으로 표준화
-- 주제: 환경/과학/ai/코딩/미술/음악/스포츠/독서/진로/취업/진학 등
-- 지역: 성남/분당/수정/중원/야탑/정자동 등 지명 유지
-- 부정/제외: "~말고", "제외", "빼고", "싫어" → excluded에 등록
-- 중복 제거, 불용어 제거(은/는/이/가/좀/되도록 등)
-
-[확장 규칙]
-- "가족" 포함 시: ["가족","어린이","초등학생","놀이","사회성"] 중 맥락 맞는 것 포함
-- "아이/어린이" 언급 시: ["어린이","초등학생"]로 통일
-- "중학생/고등학생/청소년" → ["청소년"] 유지, 필요 시 구체 레벨 병행
-- "과학/ai/코딩"은 ["ai","코딩","과학"] 같이 주제군 보강 가능
-- "실내/야외" 같이 공간 조건이 있으면 반드시 포함
-- "무료/유료" 언급을 비용 조건으로 포함
-- "이번 주말/오늘/평일 저녁" 등 시간 조건은 ["주말","오늘","평일 저녁"]처럼 보존(한국어)
-
-[제한]
-- 키워드는 3~7개로 간결하게. 너무 일반적인 단어(행사, 추천, 알려줘)는 제외.
-- 최종 응답은 반드시 JSON 객체 하나만 출력(설명 금지).
+[정규화/확장 규칙 요약]
+- 날짜: 오늘/주말/이번주/이번달 등 의미 보존
+- 비용: 무료/유료
+- 공간: 실내/야외/온라인
+- 대상: 어린이/초등학생/청소년/성인/어르신 등
+- 활동: 체험/공연/전시/강연/교육/대회 등
+- 지역/고유명사: 원형 유지
+- 부정: "~말고, 제외, 빼고, 싫어" → excluded
+- 3~7개, 중복/불용어 제거
 """
-            },
 
-            # -------- Few-shot 예시 1 --------
-            {
-                "role": "user",
-                "content": "주말에 가족이랑 아이가 즐길 수 있는 무료 야외 체험 있어?"
-            },
-            {
-                "role": "assistant",
-                "content": """
+    fewshot = [
+        {
+            "role": "user",
+            "content": "주말에 가족이랑 아이가 즐길 수 있는 무료 야외 체험 있어?"
+        },
+        {
+            "role": "assistant",
+            "content": """
 {
   "keywords": ["주말","가족","어린이","초등학생","야외","체험","무료"],
   "categories": ["교육","체험"],
   "inferred": ["가족 동반","놀이","사회성"],
   "excluded": []
 }
-"""
-            },
-
-            # -------- Few-shot 예시 2 --------
-            {
-                "role": "user",
-                "content": "고등학생 대상 ai 경진대회 같은 거 있을까? 분당 근처면 좋고, 온라인 말고 오프라인 원해."
-            },
-            {
-                "role": "assistant",
-                "content": """
+""".strip()
+        },
+        {
+            "role": "user",
+            "content": "고등학생 대상 ai 경진대회 같은 거 있을까? 분당 근처면 좋고, 온라인 말고 오프라인 원해."
+        },
+        {
+            "role": "assistant",
+            "content": """
 {
   "keywords": ["고등학생","청소년","ai","대회","경진대회","분당","오프라인"],
   "categories": ["대회","교육"],
   "inferred": ["진학/스펙","코딩"],
   "excluded": ["온라인"]
 }
-"""
-            },
-
-            # -------- Few-shot 예시 3 --------
-            {
-                "role": "user",
-                "content": "실내 전시 찾아줘. 어린이용 말고 성인 위주로, 미술 쪽이면 좋겠어."
-            },
-            {
-                "role": "assistant",
-                "content": """
+""".strip()
+        },
+        {
+            "role": "user",
+            "content": "실내 전시 찾아줘. 어린이용 말고 성인 위주로, 미술 쪽이면 좋겠어."
+        },
+        {
+            "role": "assistant",
+            "content": """
 {
   "keywords": ["실내","전시","미술","성인"],
   "categories": ["전시","문화"],
   "inferred": [],
   "excluded": ["어린이","초등학생","가족"]
 }
-"""
-            },
-
-            # -------- Few-shot 예시 4 (부정/제외) --------
-            {
-                "role": "user",
-                "content": "무료 강연 좋은데 야외는 말고 실내 위주로. 어린이 프로그램은 빼줘."
-            },
-            {
-                "role": "assistant",
-                "content": """
+""".strip()
+        },
+        {
+            "role": "user",
+            "content": "무료 강연 좋은데 야외는 말고 실내 위주로. 어린이 프로그램은 빼줘."
+        },
+        {
+            "role": "assistant",
+            "content": """
 {
   "keywords": ["무료","강연","실내"],
   "categories": ["강연","교육"],
   "inferred": [],
   "excluded": ["야외","어린이","초등학생","가족"]
 }
-"""
-            },
+""".strip()
+        },
+    ]
 
-            # -------- 실제 사용자 입력 --------
-            {
-                "role": "user",
-                "content": f"{raw_message}"
+    messages = [{"role": "system", "content": system_prompt}] + fewshot + [
+        {"role": "user", "content": raw_message}
+    ]
+
+    resp = await openai_client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=messages,
+        response_format={"type": "json_object"},
+        temperature=0.2,
+        top_p=0.9,
+    )
+
+    try:
+        parsed = json.loads(resp.choices[0].message.content)
+    except Exception:
+        # 안전 폴백
+        words = [w.strip() for w in raw_message.split() if len(w.strip()) >= 2]
+        return words[:6] or ([raw_message] if raw_message else [])
+
+    candidates = parsed.get("keywords") or parsed.get("categories") or []
+    if isinstance(candidates, str):
+        candidates = [candidates]
+    keywords = [k for k in candidates if isinstance(k, str) and k.strip()]
+    return keywords or ([raw_message] if raw_message else [])
+
+
+def score_event(event: dict, keywords: List[str]) -> int:
+    """간단한 키워드 점수 계산"""
+    title = (event.get('title') or '').lower()
+    description = (event.get('deep_data') or '').lower()
+    category_text = (event.get('category') or '').lower()
+
+    score = 0
+    for kw in keywords:
+        k = kw.lower()
+        if k in title:
+            score += 2
+        if k in description:
+            score += 1
+        if k in category_text:
+            score += 1
+    return score
+
+
+async def handle_chat_logic(raw_message: str) -> dict:
+    """채팅 API 공용 로직"""
+    if not raw_message:
+        return {
+            "response": {
+                "keywords": [],
+                "recommended_event": {},
+                "reason": {
+                    "ko": "메시지를 입력해주세요.",
+                    "en": "Please enter a message to begin."
+                }
             }
-        ]
+        }
 
-        response = await openai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-            response_format={"type": "json_object"},
-            temperature=0.2,
-            top_p=0.9
-        )
-        analysis = json.loads(response.choices[0].message.content)
-        keywords = analysis.get("keywords") or analysis.get("categories") or []
-        if isinstance(keywords, str):
-            keywords = [keywords]
-        keywords = [k for k in keywords if isinstance(k, str) and k.strip()]
-        if not keywords:
-            keywords = [raw_message] if raw_message else []
-        print(f"추출된 키워드: {keywords}")
+    try:
+        keywords = await extract_keywords_with_openai(raw_message)
+        # 매칭
+        matching: List[Tuple[dict, int]] = []
+        for ev in events_data:
+            s = score_event(ev, keywords)
+            if s > 0:
+                matching.append((ev, s))
 
-        matching_events = []
-        for event in events_data:
-            score = 0
-            title = (event.get('title') or '').lower()
-            description = (event.get('deep_data') or '').lower()
-            category_text = (event.get('category') or '').lower()
-            for keyword in keywords:
-                keyword_lower = keyword.lower()
-                if keyword_lower in title:
-                    score += 2
-                if keyword_lower in description:
-                    score += 1
-                if keyword_lower in category_text:
-                    score += 1
-            if score > 0:
-                matching_events.append((event, score))
-
-        print(f"매칭된 행사 수: {len(matching_events)}")
-
-        if not matching_events:
+        if not matching:
             return {
                 "response": {
                     "keywords": keywords,
                     "recommended_event": {},
-                    "reason": build_reason(None, keywords)
+                    "reason": build_reason(None, keywords),
                 }
             }
-        best_event, best_score = max(matching_events, key=lambda x: x[1])
+
+        best_event, _ = max(matching, key=lambda x: x[1])
         return {
             "response": {
                 "keywords": keywords,
                 "recommended_event": best_event,
-                "reason": build_reason(best_event, keywords)
+                "reason": build_reason(best_event, keywords),
             }
         }
-
     except Exception as e:
-        print(f"OpenAI API 오류: {e}")
+        # 에러 시에도 일관된 JSON 반환
         return {
             "response": {
-                "keywords": keywords if locals().get('keywords') else [raw_message] if raw_message else [],
+                "keywords": [],
                 "recommended_event": {},
                 "reason": {
                     "ko": f"오류가 발생했습니다: {str(e)}",
@@ -288,6 +290,110 @@ async def chat(request: Request):
         }
 
 
-@app.get("/events")
-async def get_events():
+# =========================
+# Lifespan
+# =========================
+@app.on_event("startup")
+async def load_events_data():
+    """서버 시작 시 events.json 로딩"""
+    global events_data
+    try:
+        async with aiofiles.open(EVENTS_JSON_PATH, mode="r", encoding="utf-8") as f:
+            content = await f.read()
+            data = json.loads(content)
+            # 파일이 배열이면 그대로, { "events": [...] } 구조면 events만 취함
+            if isinstance(data, dict) and "events" in data:
+                events_data = data["events"] or []
+            elif isinstance(data, list):
+                events_data = data
+            else:
+                events_data = []
+        print(f"[startup] Loaded events: {len(events_data)} from {EVENTS_JSON_PATH}")
+    except FileNotFoundError:
+        events_data = []
+        print(f"[startup] events.json 파일을 찾을 수 없습니다: {EVENTS_JSON_PATH}")
+    except json.JSONDecodeError:
+        events_data = []
+        print(f"[startup] events.json 디코딩 중 오류가 발생했습니다: {EVENTS_JSON_PATH}")
+
+    if not OPENAI_API_KEY:
+        print("[warn] OPENAI_API_KEY 환경변수가 설정되지 않았습니다. 키워드 추출은 간단 폴백 로직을 사용합니다.")
+
+
+# =========================
+# Page routes (완전 분리)
+# =========================
+@app.get("/", include_in_schema=False)
+async def root():
+    # 기본 진입은 /chat 로 리다이렉트
+    return RedirectResponse(url="/chat", status_code=302)
+
+
+@app.get("/chat", response_class=HTMLResponse)
+async def chat_page(request: Request):
+    """
+    채팅 전용 페이지 (templates/chat.html 렌더링)
+    프론트엔드는 /api/chat 을 호출하도록 구성 권장.
+    """
+    return templates.TemplateResponse("chat.html", {"request": request})
+
+
+@app.get("/feed", response_class=HTMLResponse)
+async def feed_page(request: Request):
+    """
+    피드 전용 페이지 (templates/feed.html 렌더링)
+    프론트엔드는 /api/events 를 호출하도록 구성 권장.
+    """
+    return templates.TemplateResponse("feed.html", {"request": request})
+
+
+# =========================
+# API routes (권장 경로)
+# =========================
+@app.post("/api/chat")
+async def api_chat(request: Request):
+    """
+    채팅 API (POST /api/chat)
+    Body: { "message": "..." }
+    """
+    data = await request.json()
+    raw_message = (data.get("message") or "").strip()
+    return await handle_chat_logic(raw_message)
+
+
+@app.get("/api/events")
+async def api_events():
+    """행사 목록 API (GET /api/events)"""
     return {"events": events_data}
+
+
+# =========================
+# Legacy aliases (하위호환)
+# =========================
+@app.post("/chat")
+async def legacy_chat(request: Request):
+    """이전 프런트가 POST /chat 을 호출하던 경우 지원"""
+    return await api_chat(request)
+
+
+@app.get("/events")
+async def legacy_events():
+    """이전 프런트가 GET /events 를 호출하던 경우 지원"""
+    return await api_events()
+
+
+@app.get("/feed.html", include_in_schema=False)
+async def legacy_feed_html():
+    return RedirectResponse(url="/feed", status_code=301)
+
+@app.get("/chat.html", include_in_schema=False)
+async def legacy_chat_html():
+    return RedirectResponse(url="/chat", status_code=301)
+
+
+# =========================
+# Health check
+# =========================
+@app.get("/healthz", include_in_schema=False)
+async def healthz():
+    return {"ok": True}
