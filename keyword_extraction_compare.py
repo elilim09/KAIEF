@@ -3,8 +3,10 @@ import time
 import json
 import matplotlib.pyplot as plt
 from openai import OpenAI
+import os
 
-client = OpenAI(api_key="openkey")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # 환경변수로 주입 권장
+client = OpenAI(api_key=OPENAI_API_KEY)
 sentences = [
     "무료 강연 좋은데 야외는 말고 실내 위주로. 어린이 프로그램은 빼줘.",
     "공연이나 음악회 같은 거 보고 싶어. 가족 단위는 좀...",
