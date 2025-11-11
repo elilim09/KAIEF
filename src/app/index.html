@@ -110,6 +110,8 @@
 
     html, body { height: 100%; }
     body {
+      margin: 0;
+      min-height: 100dvh;
       font-family: 'Roboto Flex', 'Noto Sans KR', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
       background: var(--gradient-surface);
       color: var(--md-sys-color-on-surface);
@@ -118,7 +120,7 @@
       -moz-osx-font-smoothing: grayscale;
     }
 
-    .app { width: min(430px, 100vw); min-height: 100dvh; margin: 0 auto; position: relative; }
+    .app { width: min(430px, 100vw); min-height: 100dvh; margin: 0 auto; position: relative; display:flex; flex-direction:column; background: var(--md-sys-color-surface); box-shadow: var(--elevation-2); }
 
     .app-bar { position: sticky; top: 0; z-index: 30; background: var(--md-sys-color-surface); backdrop-filter: saturate(1.3) blur(10px); border-bottom: 1px solid var(--md-sys-color-outline-variant); transition: padding var(--dur-standard) var(--easing-emphasized), box-shadow var(--dur-standard) var(--easing-standard); padding: 18px 20px 12px; }
     .app-bar.compact { padding: 8px 16px; box-shadow: var(--elevation-1); }
@@ -137,7 +139,7 @@
     .tab[aria-selected="true"], .tab.active { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); box-shadow: var(--elevation-1); }
     .language-toggle { font-size:13px; font-weight:600; padding:8px 14px; }
 
-    .icon-button { width: 40px; height: 40px; border-radius: var(--shape-corner-lg); display:grid; place-items:center; border:1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface-container-low); color: var(--md-sys-color-on-surface); transition: transform var(--dur-quick) var(--easing-standard), background var(--dur-quick) var(--easing-standard); }
+    .icon-button { width: 44px; height: 44px; border-radius: var(--shape-corner-lg); display:grid; place-items:center; border:1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface-container-low); color: var(--md-sys-color-on-surface); transition: transform var(--dur-quick) var(--easing-standard), background var(--dur-quick) var(--easing-standard); }
     .icon-button:hover { transform: translateY(-1px); background: var(--md-sys-color-surface-container); }
     .icon-button:active { transform: scale(.97); }
     .theme-toggle { background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); border-color: transparent; }
@@ -148,10 +150,10 @@
     .chip:hover{ transform: translateY(-1px); background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); border-color: var(--md-sys-color-primary); }
     .chip[data-active="true"]{ background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); border-color: var(--md-sys-color-primary); box-shadow: var(--elevation-2); }
 
-    .view { display:none; }
+    .view { display:none; flex:1 1 auto; min-height:0; width:100%; }
     .view.active { display:flex; }
-    .chat { height: var(--view-height); display:flex; flex-direction:column; background: var(--md-sys-color-surface); }
-    .chat-list { flex:1; padding: 14px 20px; overflow-y:auto; scroll-behavior:smooth; }
+    .chat { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; background: var(--md-sys-color-surface); }
+    .chat-list { flex:1; padding: 18px 20px 24px; overflow-y:auto; scroll-behavior:smooth; display:flex; flex-direction:column; gap:14px; }
     .chat-list::-webkit-scrollbar{ width:6px; } .chat-list::-webkit-scrollbar-thumb{ background: var(--md-sys-color-outline); border-radius:3px; }
 
     .bubble{ max-width:82%; line-height:1.55; font-size:15px; padding:14px 16px; border-radius: var(--shape-corner-xl); position:relative; animation: slideUp var(--dur-standard) var(--easing-emphasized); }
@@ -160,10 +162,10 @@
     .bubble.user{ background: var(--gradient-primary); color: var(--md-sys-color-on-primary); margin-left:auto; box-shadow: var(--elevation-2); border-bottom-right-radius: var(--shape-corner-sm); }
     @keyframes slideUp { from { opacity:0; transform: translateY(16px) scale(.98); } to { opacity:1; transform: translateY(0) scale(1); } }
 
-    .composer { padding: 10px 12px 14px; border-top: 1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface); position:relative; z-index: 10; }
-    .composer-row { display:flex; gap:10px; align-items:flex-end; }
+    .composer { padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0)); border-top: 1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface); position:relative; z-index: 10; }
+    .composer-row { display:flex; gap:12px; align-items:center; }
 
-    .field { flex:1; display:flex; align-items:center; background: var(--md-sys-color-surface-container); border: 2px solid var(--md-sys-color-outline-variant); border-radius: var(--shape-corner-full); transition: border-color var(--dur-quick) var(--easing-standard), box-shadow var(--dur-quick) var(--easing-standard), background var(--dur-quick) var(--easing-standard); padding: 2px 6px; position:relative; }
+    .field { flex:1; display:flex; align-items:center; background: var(--md-sys-color-surface-container); border: 2px solid var(--md-sys-color-outline-variant); border-radius: var(--shape-corner-full); transition: border-color var(--dur-quick) var(--easing-standard), box-shadow var(--dur-quick) var(--easing-standard), background var(--dur-quick) var(--easing-standard); padding: 4px 14px; position:relative; min-height:56px; }
     .field:focus-within{ border-color: var(--md-sys-color-primary); box-shadow: 0 0 0 4px color-mix(in oklab, var(--md-sys-color-primary) 20%, transparent); background: var(--md-sys-color-surface-container-high); }
     .input{ flex:1; border:0; outline:0; background: transparent; color: var(--md-sys-color-on-surface); font-size: 15px; padding: 10px 10px; }
     .input::placeholder{ color: color-mix(in oklab, var(--md-sys-color-on-surface) 55%, transparent); }
@@ -179,7 +181,7 @@
     .send .label { line-height: 1; margin: 0; }
 
     /* ======= Reworked FAB Speed Dial (anchored to more button) ======= */
-    .fab-dial { position:absolute; right: 0; bottom: 56px; display:flex; flex-direction:column; gap:10px; transform-origin: bottom right; pointer-events:none; }
+    .fab-dial { position:absolute; right: 0; bottom: calc(100% + 12px); display:flex; flex-direction:column; gap:10px; transform-origin: bottom right; pointer-events:none; }
     .fab-dial.open { pointer-events:auto; }
     .mini-fab { position:relative; width:48px; height:48px; border-radius: var(--shape-corner-full); display:grid; place-items:center; border:1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface); box-shadow: var(--elevation-3); transform: scale(.9) translateY(8px); opacity:0; transition: transform var(--dur-standard) var(--easing-emphasized), opacity var(--dur-standard) var(--easing-standard); }
     .fab-dial.open .mini-fab { transform: scale(1) translateY(0); opacity:1; }
@@ -191,15 +193,15 @@
     .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; padding: 0 6px; }
     .chip-label{ font-size:12px; font-weight:600; opacity:.7; margin-bottom:6px; padding:0 6px; }
 
-    .feed { height: var(--view-height); display:flex; flex-direction:column; background: var(--md-sys-color-surface); }
-    .feed-header { padding: 18px 20px 12px; border-bottom:1px solid var(--md-sys-color-outline-variant); }
+    .feed { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; background: var(--md-sys-color-surface); }
+    .feed-header { padding: 14px 20px 10px; border-bottom:1px solid var(--md-sys-color-outline-variant); display:flex; flex-direction:column; gap:6px; }
     .feed-header h2 { font-size:18px; font-weight:700; letter-spacing:-0.01em; }
-    .feed-header p { margin-top:4px; font-size:13px; line-height:1.6; opacity:.8; }
-    .feed-filter { padding: 12px 20px; border-bottom:1px solid var(--md-sys-color-outline-variant); display:flex; flex-direction:column; gap:8px; }
-    .feed-filter-label { font-size:12px; font-weight:600; opacity:.7; }
-    .feed-filter-chips { display:flex; flex-wrap:wrap; gap:8px; }
-    .feed-list { flex:1; overflow-y:auto; padding: 12px 20px 24px; display:flex; flex-direction:column; gap:16px; }
-    .feed-message { padding: 16px 20px; font-size:13px; opacity:.8; }
+    .feed-header p { margin:0; font-size:13px; line-height:1.6; opacity:.75; }
+    .feed-filter { padding: 10px 20px; border-bottom:1px solid var(--md-sys-color-outline-variant); display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
+    .feed-filter-label { font-size:12px; font-weight:600; opacity:.7; flex:0 0 auto; }
+    .feed-filter-chips { flex:1 1 auto; display:flex; flex-wrap:wrap; gap:8px; max-height:calc(2 * 36px); overflow-y:auto; padding-bottom:2px; }
+    .feed-list { flex:1; overflow-y:auto; padding: 12px 20px calc(24px + env(safe-area-inset-bottom, 0)); display:flex; flex-direction:column; gap:16px; }
+    .feed-message { padding: 12px 20px; font-size:13px; opacity:.8; }
     .feed-card { border:1px solid var(--md-sys-color-outline-variant); border-radius: var(--shape-corner-xl); background: var(--md-sys-color-surface-container-low); padding: 18px; box-shadow: var(--elevation-1); transition: transform var(--dur-quick) var(--easing-standard), box-shadow var(--dur-quick) var(--easing-standard); }
     .feed-card:hover { transform: translateY(-2px); box-shadow: var(--elevation-3); }
     .feed-card h3 { font-size:17px; font-weight:700; letter-spacing:-0.01em; }
@@ -211,6 +213,14 @@
     @keyframes blink { 0%,100%{opacity:.25} 50%{opacity:1} }
     .dots>span{ display:inline-block; width:6px; height:6px; border-radius:999px; background: currentColor; animation: blink 1s infinite; }
     .dots>span:nth-child(2){ animation-delay:.18s } .dots>span:nth-child(3){ animation-delay:.36s }
+
+    #applySeed { white-space: nowrap; flex-shrink: 0; }
+
+    .scroll-bottom-btn { border-radius: var(--shape-corner-full); border:1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface); width:44px; height:44px; flex:0 0 auto; display:grid; place-items:center; overflow:hidden; box-shadow: var(--elevation-2); opacity:0; transform: translateY(8px); pointer-events:none; transition: opacity var(--dur-quick) var(--easing-standard), transform var(--dur-quick) var(--easing-standard), width var(--dur-quick) var(--easing-standard), border-color var(--dur-quick) var(--easing-standard), box-shadow var(--dur-quick) var(--easing-standard); }
+    .scroll-bottom-btn:hover { background: var(--md-sys-color-surface-container-high); }
+    .scroll-bottom-btn:focus-visible { outline: 3px solid color-mix(in oklab, var(--md-sys-color-primary) 45%, transparent); }
+    .scroll-bottom-btn.visible { opacity:1; transform: translateY(0); pointer-events:auto; }
+    .scroll-bottom-btn:not(.visible) { width:0; border-color: transparent; box-shadow:none; }
 
     @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition-duration: 1ms !important; } }
   </style>
@@ -305,6 +315,9 @@
           <div class="field">
             <input id="input" class="input" placeholder="무엇이든 물어보세요..." maxlength="500" />
           </div>
+          <button id="scrollBottom" type="button" class="scroll-bottom-btn" aria-hidden="true" tabindex="-1" aria-label="최신 메시지 보기" title="최신 메시지 보기">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v12"/><path d="M19 12l-7 7-7-7"/></svg>
+          </button>
           <button id="send" class="send" data-compact="true" aria-label="메시지 전송">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.4-8.4c.5-.2.5-.9 0-1.2L3.4 2.4c-.5-.2-1 .2-1 .7v5.5c0 .3.2.6.5.6l8.6.9c.2 0 .2.2 0 .3l-8.6.9c-.3 0-.5.3-.5.6V19.7c0 .5.4 1 1 .7z"/></svg>
             <span class="label" data-i18n="sendLabel">전송</span>
@@ -354,6 +367,7 @@
         placeholder: "무엇이든 물어보세요...",
         sendLabel: "전송",
         sendAria: "메시지 전송",
+        scrollBottomAria: "최신 메시지 보기",
         moreAria: "추가 옵션",
         typingLabel: "입력 중...",
         keywordTitle: "🔎 추출된 키워드",
@@ -403,6 +417,7 @@
         placeholder: "Ask anything about events...",
         sendLabel: "Send",
         sendAria: "Send message",
+        scrollBottomAria: "Jump to latest message",
         moreAria: "More options",
         typingLabel: "Typing...",
         keywordTitle: "🔎 Extracted keywords",
@@ -470,6 +485,7 @@
     const chipLabel = document.getElementById('chipLabel');
     const input = document.getElementById('input');
     const send = document.getElementById('send');
+    const scrollBottomBtn = document.getElementById('scrollBottom');
     const moreBtn = document.getElementById('moreBtn');
     const moreWrap = document.getElementById('moreWrap');
     const fabDial = document.getElementById('fabDial');
@@ -668,6 +684,7 @@
       row.innerHTML = `<div class="bubble ${role}">${html}</div>`;
       chatList.appendChild(row);
       chatList.scrollTo({ top: chatList.scrollHeight, behavior: 'smooth' });
+      updateScrollButton();
     }
 
     function showTyping() {
@@ -685,6 +702,7 @@
       typingEl = row;
       chatList.appendChild(row);
       chatList.scrollTo({ top: chatList.scrollHeight, behavior: 'smooth' });
+      updateScrollButton();
     }
 
     function hideTyping() {
@@ -692,6 +710,7 @@
         typingEl.remove();
         typingEl = null;
       }
+      updateScrollButton();
     }
 
     function updateSend() {
@@ -699,6 +718,20 @@
       send.setAttribute('data-compact', hasText ? 'false' : 'true');
       const labelEl = send.querySelector('.label');
       if (labelEl) labelEl.setAttribute('aria-hidden', hasText ? 'false' : 'true');
+    }
+
+    function isAtBottom(target) {
+      if (!target) return true;
+      const threshold = 12;
+      return target.scrollHeight - target.scrollTop - target.clientHeight <= threshold;
+    }
+
+    function updateScrollButton() {
+      if (!scrollBottomBtn) return;
+      const shouldShow = currentView === 'chat' && !isAtBottom(chatList);
+      scrollBottomBtn.classList.toggle('visible', shouldShow);
+      scrollBottomBtn.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+      scrollBottomBtn.setAttribute('tabindex', shouldShow ? '0' : '-1');
     }
 
     input.addEventListener('input', updateSend);
@@ -709,6 +742,12 @@
       }
     });
     send.addEventListener('click', sendMessage);
+    if (scrollBottomBtn) {
+      scrollBottomBtn.addEventListener('click', () => {
+        chatList.scrollTo({ top: chatList.scrollHeight, behavior: 'smooth' });
+        updateScrollButton();
+      });
+    }
 
     chips.addEventListener('click', (e) => {
       const btn = e.target.closest('.chip');
@@ -932,6 +971,7 @@
         ensureFeed();
         handleSurfaceScroll(feedList);
       }
+      updateScrollButton();
     }
 
     tabButtons.forEach((btn) => {
@@ -955,6 +995,10 @@
       const labelEl = send.querySelector('.label');
       if (labelEl) labelEl.textContent = t.sendLabel;
       send.setAttribute('aria-label', t.sendAria);
+      if (scrollBottomBtn) {
+        scrollBottomBtn.setAttribute('aria-label', t.scrollBottomAria);
+        scrollBottomBtn.setAttribute('title', t.scrollBottomAria);
+      }
       paletteBtn.setAttribute('aria-label', t.paletteAria);
       themeToggle.setAttribute('aria-label', t.themeAria);
       moreBtn.setAttribute('aria-label', t.moreAria);
@@ -968,6 +1012,7 @@
         feedMessage.textContent = '';
         feedFootnote.textContent = '';
       }
+      updateScrollButton();
     }
 
     languageToggle.addEventListener('click', () => {
@@ -986,6 +1031,7 @@
 
     chatList.addEventListener('scroll', () => {
       if (currentView === 'chat') handleSurfaceScroll(chatList);
+      updateScrollButton();
     });
 
     feedList.addEventListener('scroll', () => {
@@ -1000,6 +1046,7 @@
     applyLanguage(currentLang);
     updateSend();
     handleSurfaceScroll(chatList);
+    updateScrollButton();
   </script>
 
 </body>
