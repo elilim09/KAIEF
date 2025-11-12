@@ -1,0 +1,702 @@
+[
+  {
+    "id": 0,
+    "title_en": "Conservation Science, A New Beginning for the Future Together",
+    "place_en": "National Museum of Korea Conservation Science Center 1st Floor",
+    "host_en": "National Museum of Korea",
+    "period_en": ""
+  },
+  {
+    "id": 1,
+    "title_en": "Changdong Residency Report 2025: Again - Scene",
+    "place_en": "Residency",
+    "host_en": "National Museum of Modern and Contemporary Art",
+    "period_en": "2025-11-14~2025-11-23"
+  },
+  {
+    "id": 2,
+    "title_en": "2025 Art in Gangwon Exhibition 'Baekdu Daegan - Resonance of Connection'",
+    "place_en": "Children's Museum 2nd Floor Open Exhibition Hall",
+    "host_en": "National Chuncheon Museum",
+    "period_en": "2025-11-04~2025-11-16"
+  },
+  {
+    "id": 3,
+    "title_en": "Yongsan 20th Anniversary <20 Years of Stories, Artifacts and People>",
+    "place_en": "National Museum of Korea Permanent Exhibition Hall",
+    "host_en": "National Museum of Korea",
+    "period_en": ""
+  },
+  {
+    "id": 4,
+    "title_en": "Nabilera in Jeju - Special Exhibition for the 80th Anniversary of Liberation",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 5,
+    "title_en": "Korea-Taiwan Dual Language Performance",
+    "place_en": "",
+    "host_en": "Seoul Arts Center",
+    "period_en": "2025-10-19~2025-10-28"
+  },
+  {
+    "id": 6,
+    "title_en": "Silla Gold Crown, Power and Prestige",
+    "place_en": "",
+    "host_en": "National Museum of Korea",
+    "period_en": ""
+  },
+  {
+    "id": 7,
+    "title_en": "K-Arts space exhibition <Rehearsal Outside>",
+    "place_en": "K",
+    "host_en": "Korea National University of Arts",
+    "period_en": "2025-10-16 ~ 2025-11-03"
+  },
+  {
+    "id": 8,
+    "title_en": "[Same Enjoyment] Korea, Japan, Taiwan Exchange Exhibition",
+    "place_en": "Children's Museum",
+    "host_en": "National Chuncheon Museum",
+    "period_en": "2025-10-14~2025-10-27"
+  },
+  {
+    "id": 9,
+    "title_en": "Encounter, Modern Art Association 1957-1960",
+    "place_en": "Cheongju",
+    "host_en": "National Museum of Modern and Contemporary Art",
+    "period_en": "2025-10-02~2026-03-08"
+  },
+  {
+    "id": 10,
+    "title_en": "MMCA International Masterpieces: Water Lilies and Chandelier",
+    "place_en": "Gwacheon",
+    "host_en": "National Museum of Modern and Contemporary Art",
+    "period_en": "2025-10-02~2027-01-03"
+  },
+  {
+    "id": 11,
+    "title_en": "Modern and Contemporary Magazine Special Exhibition 'Small but Shining Moments'",
+    "place_en": "",
+    "host_en": "National Library for Children and Young Adults",
+    "period_en": "2025-09-25  ~ 2025-12-31"
+  },
+  {
+    "id": 12,
+    "title_en": "Encounter, Modern Art Association 1957-1960",
+    "place_en": "Cheongju",
+    "host_en": "National Museum of Modern and Contemporary Art",
+    "period_en": "2025-10-02~2026-03-08"
+  },
+  {
+    "id": 13,
+    "title_en": "MMCA International Masterpieces: Water Lilies and Chandelier",
+    "place_en": "Gwacheon",
+    "host_en": "National Museum of Modern and Contemporary Art",
+    "period_en": "2025-10-02~2027-01-03"
+  },
+  {
+    "id": 14,
+    "title_en": "Silla Gold Crown, Power and Prestige",
+    "place_en": "Silla History Museum (Room 3a)",
+    "host_en": "National Gyeongju Museum",
+    "period_en": "2025-11-02 ~ 2025-12-14"
+  },
+  {
+    "id": 15,
+    "title_en": "Special Exhibition: Burial Goods Made of Clay, Serene Majesty",
+    "place_en": "",
+    "host_en": "National Museum of Korea",
+    "period_en": ""
+  },
+  {
+    "id": 16,
+    "title_en": "The Secret Royal Inspector Stands by the People",
+    "place_en": "National Jinju Museum Planning Exhibition Hall",
+    "host_en": "National Jinju Museum",
+    "period_en": "2025-10-01~2026-02-22"
+  },
+  {
+    "id": 17,
+    "title_en": "Fairy Tales and Illustrations, A World of Dreams and Imagination",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 18,
+    "title_en": "National Treasure Special Exhibition <Realization of Wishes, Figurative Pottery>",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 19,
+    "title_en": "10th Anniversary of the National Jeju Museum - 4th Anniversary of World Natural Heritage Registration",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 20,
+    "title_en": "The Life of Goryeo People Embodied in Metal Crafts",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 21,
+    "title_en": "The Meeting of Cultural Heritage and Conservation Science - Breathing New Life Into It -",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 22,
+    "title_en": "Walking at Jeju Olle, Museum",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 23,
+    "title_en": "Modern Japanese Design 100",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 24,
+    "title_en": "Jeju Olle, Walking in the Museum - The Villages and Paths of Old Jeju",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 25,
+    "title_en": "Roar~ Our Tiger",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 26,
+    "title_en": "Knot for Everyday Life",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 27,
+    "title_en": "Hallasan",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 28,
+    "title_en": "The Great Empire of the Steppe: Xiongnu",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 29,
+    "title_en": "Gazing at a New Horizon, Bronze Age",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 30,
+    "title_en": "Architecture Exhibition After the 3.11 Great East Japan Earthquake",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 31,
+    "title_en": "The Golden Kingdom of the Equator, Indonesia",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 32,
+    "title_en": "Jeju Olle Trail and Beautiful Pottery",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 33,
+    "title_en": "The Art of Light, Najeon Chilgi",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 34,
+    "title_en": "Ancient Civilizations of Vietnam, Dawn of the Red River",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 35,
+    "title_en": "Korea's Horse, Running Through Time",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 36,
+    "title_en": "Exploration of Tamra in Daegaya",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 37,
+    "title_en": "Use of the Old Tray",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 38,
+    "title_en": "Joseon Scholar Choi Bu, Unexpected Insights from China",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 39,
+    "title_en": "Gosan-ri, Jeju: Opening the Neolithic Era",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 40,
+    "title_en": "Tamra's Daegaya Outing",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 41,
+    "title_en": "The Great Teacher of Jeju Study, Buhae An Byeong-taek",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 42,
+    "title_en": "The Smile of Buddha Encountered in Jeju",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 43,
+    "title_en": "Stone and Culture",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 44,
+    "title_en": "Island, Soil, Ring of Memory",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 45,
+    "title_en": "[Korea, 7,000 Years of Art]",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 46,
+    "title_en": "Special Exhibition of Donated Artifacts by Teacher Kim Soon-hee",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 47,
+    "title_en": "Special Exhibition 'A Journey Through Currency with Twelve Boxes - The Story of Our Money'",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 48,
+    "title_en": "Special Exhibition 'Kim Jeong-hee: The Realm of Harmonizing Art and Scholarship' Held",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 49,
+    "title_en": "Special Exhibition 'Autumn History: Kim Jeong-hee and Jeju'",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 50,
+    "title_en": "Special Exhibition 'Horses of Antiquity'",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 51,
+    "title_en": "Special Exhibition 'The Fragrance of Old Books and Calligraphy'",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 52,
+    "title_en": "Special Exhibition of Temple Flower Screen Photos",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 53,
+    "title_en": "Special Exhibition on the History of Navigation and Drifting",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 54,
+    "title_en": "The Dream of Young Sailor Hamel in the East 350 Years",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 55,
+    "title_en": "A Life of an Intellectual at the End of the Joseon Dynasty - The Thoughts and Dreams of Kim Seok-ik - Special Exhibition",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 56,
+    "title_en": "Special Exhibition of 'Jeju Costume Exhibition'",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 57,
+    "title_en": "Special Exhibition of the Governor of Jeju during the Late 19th Century - Inspector Lee Gyu-won",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 58,
+    "title_en": "The Truth of Mid-Joseon History - Special Exhibition of Records Left by Pastor Lee Ik-tae of Jeju (3.28 ~ 5.29)",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 59,
+    "title_en": "4th Children's Cultural Heritage Drawing Contest Award-winning Works Exhibition 'Landscape with Dreams'",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 60,
+    "title_en": "Special Exhibition on Marine Cultural Exchange (10. 10 ~ 11. 27) 'Rediscovery of Prehistoric Culture through Shell Products of Korea-Japan Okinawa' held",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 61,
+    "title_en": "Special Exhibition of the Joseon Royal Family's Palanquin (4.18~5.31)",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 62,
+    "title_en": "'Colors of Asia: Paul Jacoulet Prints' Exhibition",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 63,
+    "title_en": "Special Exhibition on Maritime Cultural Exchange II 'Tamra and the Ryukyu Kingdom'",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 64,
+    "title_en": "Exhibition of the Life and Art of Soam Hyun Joong-hwa",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 65,
+    "title_en": "[Korea Knot Research Association Member Exhibition] The Beauty of Traditional Knots",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 66,
+    "title_en": "National Treasure Special Exhibition 'Light of Eternity, Goryeo Celadon'",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 67,
+    "title_en": "“Palace - National Museum of Korea's Collection of Joseon Dynasty Palace Photographs” Exhibition",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 68,
+    "title_en": "Silla, Meeting the Middle East",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 69,
+    "title_en": "\"Pure Beauty, White Porcelain\" ",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 70,
+    "title_en": "Sambyeolcho and East Asia",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 71,
+    "title_en": "Goryeo Celadon",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 72,
+    "title_en": "Tamra",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 73,
+    "title_en": "The Star of Longevity, Illuminating Jeju",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 74,
+    "title_en": "Journey to an Unfamiliar Place, The Story of Jeju Exiles",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 75,
+    "title_en": "Art Cafe in Jeju National Museum",
+    "place_en": "",
+    "host_en": "Jeju National Museum",
+    "period_en": ""
+  },
+  {
+    "id": 76,
+    "title_en": "Typhoon Confession",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 77,
+    "title_en": "Ocean Jeju – Jeju Sea Viewed from the Sea",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 78,
+    "title_en": "Memories of Old Jeju Captured in Paintings, Tamra Sunryeokdo",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 79,
+    "title_en": "Jeju and the Museum, Together",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 80,
+    "title_en": "Sehando, Meeting Chusa Again and Jeju",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 81,
+    "title_en": "The Closest Comfort - Jeju Stone Buddha and Yeongwol Nahan Statue",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 82,
+    "title_en": "Invitation from a Collector - Special Exhibition Donated by the Late Chairman Lee Kun-hee at the National Jeju Museum",
+    "place_en": "",
+    "host_en": "National Jeju Museum",
+    "period_en": ""
+  },
+  {
+    "id": 83,
+    "title_en": "Nabilera in Jeju - Special Exhibition for the 80th Anniversary of Liberation",
+    "place_en": "",
+    "host_en": "National Museum of Jeju",
+    "period_en": ""
+  },
+  {
+    "id": 84,
+    "title_en": "Colorful Child Statue",
+    "place_en": "",
+    "host_en": "National Museum of Korea",
+    "period_en": ""
+  },
+  {
+    "id": 85,
+    "title_en": "From Impressionism to Early Modernism, People Who Collected Light - The Robert Lehman Collection at the Metropolitan Museum",
+    "place_en": "National Museum of Korea Special Exhibition Hall 1",
+    "host_en": "National Museum of Korea",
+    "period_en": ""
+  },
+  {
+    "id": 86,
+    "title_en": "80 Years, Moments of Memories We Walked Together",
+    "place_en": "Permanent Exhibition Hall, Exhibition Room 3",
+    "host_en": "National Buyeo Museum",
+    "period_en": "2025-09-30 ~ 2026-06-28"
+  },
+  {
+    "id": 87,
+    "title_en": "West Asia Cultural and Artistic Exchange Cooperation Exhibition 〈Ahlan, The Fatima House〉",
+    "place_en": "N:NEWS ACC (next to the stairs at exit 6 of Asia Culture Plaza)",
+    "host_en": "National Asia Culture Center",
+    "period_en": "2025-10-01 ~ 2025-10-26"
+  },
+  {
+    "id": 88,
+    "title_en": "National Treasure Tour, A 180-Day Journey Together",
+    "place_en": "",
+    "host_en": "National Museum of Korea",
+    "period_en": ""
+  },
+  {
+    "id": 89,
+    "title_en": "Colorful Child Statue",
+    "place_en": "",
+    "host_en": "National Museum of Korea",
+    "period_en": ""
+  },
+  {
+    "id": 90,
+    "title_en": "[Hamyang Museum] National Treasure Touring Exhibition, A 180-Day Journey Together – The Beauty of Garakjin and Fresh Aesthetics, Buncheong Ware",
+    "place_en": "",
+    "host_en": "National Museum of Korea",
+    "period_en": ""
+  },
+  {
+    "id": 91,
+    "title_en": "36th Children's Cultural Heritage Drawing Contest Excellent Works Exhibition",
+    "place_en": "",
+    "host_en": "National Museum of Korea",
+    "period_en": ""
+  },
+  {
+    "id": 92,
+    "title_en": "Encounter, Modern Art Association 1957-1960",
+    "place_en": "Cheongju",
+    "host_en": "National Museum of Modern and Contemporary Art",
+    "period_en": "2025-10-02~2026-03-08"
+  },
+  {
+    "id": 93,
+    "title_en": "National Treasure Tour, A 180-Day Journey Together",
+    "place_en": "Samcheok City Museum Exhibition Hall",
+    "host_en": "National Chuncheon Museum",
+    "period_en": "2025-10-01~2025-11-30"
+  },
+  {
+    "id": 94,
+    "title_en": "2025 Yoo Young-a's 'Comfort and Hope'",
+    "place_en": "Children's Museum 2nd Floor Open Exhibition Hall",
+    "host_en": "National Chuncheon Museum",
+    "period_en": "2025-09-29~2025-10-12"
+  },
+  {
+    "id": 95,
+    "title_en": "Colorful Child Statue",
+    "place_en": "Special Exhibition Hall",
+    "host_en": "National Daegu Museum",
+    "period_en": "2025-09-30~2026-10-05"
+  },
+  {
+    "id": 96,
+    "title_en": "The Path to Enlightenment",
+    "place_en": "",
+    "host_en": "National Museum of Korea",
+    "period_en": ""
+  },
+  {
+    "id": 97,
+    "title_en": "Special Exhibition: Burial Goods Made of Clay, Serene Majesty",
+    "place_en": "",
+    "host_en": "National Museum of Korea",
+    "period_en": ""
+  },
+  {
+    "id": 98,
+    "title_en": "[Hamyang Museum] National Treasure Touring Exhibition, A 180-Day Journey Together – The Beauty of Garakjin and Fresh Beauty, Buncheong Pottery",
+    "place_en": "Hamyang Museum",
+    "host_en": "National Jinju Museum",
+    "period_en": "2025-09-19~2025-11-23"
+  },
+  {
+    "id": 99,
+    "title_en": "2025 ACC-Regional University Collaborative Special Exhibition 〈Yunseul Sound〉",
+    "place_en": "Cultural Information Center Bamboo Garden, Cultural Creation Center Lobby",
+    "host_en": "National Asia Culture Center",
+    "period_en": "2025-10-16 ~ 2025-12-03"
+  }
+]

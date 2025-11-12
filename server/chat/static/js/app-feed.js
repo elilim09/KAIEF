@@ -11,6 +11,17 @@ let cachedEvents = [];
 let activeFeedFilter = 'all';
 
 initCommonUI({ page: 'feed' });
+translations.ko.state = {
+  ongoing: "진행중",
+  finished: "마감",
+  upcoming: "예정",
+};
+
+translations.en.state = {
+  ongoing: "Ongoing",
+  finished: "Finished",
+  upcoming: "Upcoming",
+};
 
 const feedFilterOptions = [
   { id: 'all', label: { ko: '전체', en: 'All' } },
@@ -54,16 +65,28 @@ function formatCost(value, lang) {
 function extractEvent(ev, lang, options = {}) {
   if (!ev || typeof ev !== 'object') return null;
   const t = translations[lang];
-  const limit = options.descriptionLimit ?? 420;
+  
+  const title = lang === 'en' ? (ev.title_en ?? ev.title) : ev.title;
+  const place = lang === 'en' ? (ev.place_en ?? ev.place) : ev.place;
+  const host = lang === 'en' ? (ev.host_en ?? ev.host) : ev.host;
+  const schedule = lang === 'en' ? (ev.period_en ?? ev.period) : ev.period;
+
+  // 상태 번역
+  let status = ev.state || ev.status || '';
+  if (lang === 'en') {
+    // 한국어 상태를 영어로 매핑
+    if (status === "진행중") status = t.state.ongoing;
+    else if (status === "마감") status = t.state.finished;
+    else if (status === "예정") status = t.state.upcoming;
+  }
+
   return {
-    title: escapeValue(ev.title, t.unknownTitle),
-    category: escapeValue(ev.category),
-    schedule: escapeValue(ev.period || ev.date || ev.datetime),
-    location: escapeValue(ev.place || ev.location),
-    host: escapeValue(ev.host || ev.organization),
-    status: escapeValue(ev.state || ev.status),
+    title: escapeValue(title, t.unknownTitle),
+    schedule: escapeValue(schedule),
+    location: escapeValue(place),
+    host: escapeValue(host),
+    status: escapeValue(status),
     cost: formatCost(ev.cost, lang),
-    description: formatDescription(ev.deep_data || ev.description || ev.overview || '', limit),
     link: escapeValue(ev.url || '')
   };
 }
@@ -91,16 +114,18 @@ function createFeedCard(ev) {
   card.className = 'feed-card';
   card.setAttribute('tabindex', '0');
 
+  // info: schedule, location
   const infoParts = [];
-  if (data.category) infoParts.push(`📂 ${data.category}`);
   if (data.schedule) infoParts.push(`📅 ${data.schedule}`);
   if (data.location) infoParts.push(`📍 ${data.location}`);
   const infoHTML = infoParts.length ? `<div class="feed-meta">${infoParts.map((p) => `<span>${p}</span>`).join('')}</div>` : '';
 
+  // meta: host, status, cost
   const metaParts = [];
   if (data.host) metaParts.push(`🏢 ${data.host}`);
   if (data.status) metaParts.push(`📌 ${data.status}`);
   if (data.cost) metaParts.push(`💰 ${data.cost}`);
+
   const footerSegments = [];
   if (metaParts.length) footerSegments.push(`<span>${metaParts.join(' · ')}</span>`);
   if (data.link) footerSegments.push(`<a href="${data.link}" target="_blank" rel="noopener">${t.actions.viewDetail}</a>`);
@@ -109,9 +134,9 @@ function createFeedCard(ev) {
   card.innerHTML = `
     <h3>${data.title}</h3>
     ${infoHTML}
-    ${data.description ? `<div class="feed-desc">${data.description}</div>` : ''}
     ${footerHTML}
   `;
+
   return card;
 }
 

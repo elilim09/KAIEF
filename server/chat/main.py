@@ -2,6 +2,7 @@
 import json
 import os
 from typing import List, Tuple, Optional
+import asyncio
 import aiofiles
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
@@ -9,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
+from datetime import datetime
 
 # =========================
 # App / Templates / Static
@@ -32,6 +34,10 @@ EVENTS_JSON_PATH = os.getenv(
     "EVENTS_JSON_PATH",
     os.path.join(BASE_DIR, "events.json")  # 기본: 서버 기준 ./events.json
 )
+EVENTS_EN_JSON_PATH = os.getenv(
+    "EVENTS_EN_JSON_PATH",
+    os.path.join(BASE_DIR, "events_en.json")
+)
 
 openai_client: Optional[AsyncOpenAI] = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
@@ -41,9 +47,88 @@ openai_client: Optional[AsyncOpenAI] = AsyncOpenAI(api_key=OPENAI_API_KEY) if OP
 events_data: List[dict] = []
 
 
-# =========================
-# Helpers
-# =========================
+def compute_event_state(period: str) -> str:
+    """
+    period: "YYYY-MM-DD~YYYY-MM-DD" 형식
+    현재 날짜 기준으로 진행중 / 종료 결정
+    """
+    if not period or "~" not in period:
+        return "진행중"  # 기간 정보 없으면 기본 진행중
+
+    try:
+        start_str, end_str = period.split("~")
+        start_date = datetime.strptime(start_str.strip(), "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_str.strip(), "%Y-%m-%d").date()
+        today = datetime.now().date()
+
+        if today < start_date:
+            return "예정"
+        elif start_date <= today <= end_date:
+            return "진행중"
+        else:
+            return "마감"
+    except Exception:
+        return "진행중"  # 파싱 오류 시 기본 진행중
+
+async def translate_event_with_openai(event: dict) -> dict:
+    """행사 정보를 OpenAI를 사용해 영어로 번역"""
+    if not openai_client:
+        return {}
+
+    # 번역할 필드
+    title = event.get("title") or ""
+    place = event.get("place") or ""
+    host = event.get("host") or ""
+    period = event.get("period") or ""  # 번역 대상에 포함
+    # state는 번역 X
+
+    if not title and not place and not host and not period:
+        return {"id": event.get("id")}
+
+    system_prompt = """
+You are a helpful translation assistant.
+Translate the following JSON values from Korean to English.
+- Keep the JSON structure.
+- Provide only the translated JSON object, without any additional text or explanations.
+- If a field is empty or missing, keep it as an empty string.
+"""
+    user_content = json.dumps({
+        "title": title,
+        "place": place,
+        "host": host,
+        "period": period
+    }, ensure_ascii=False)
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_content}
+    ]
+
+    try:
+        resp = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            response_format={"type": "json_object"},
+            temperature=0.1,
+        )
+        translated_content = json.loads(resp.choices[0].message.content)
+        return {
+            "id": event.get("id"),
+            "title_en": translated_content.get("title", ""),
+            "place_en": translated_content.get("place", ""),
+            "host_en": translated_content.get("host", ""),
+            "period_en": translated_content.get("period", "")
+        }
+    except Exception as e:
+        print(f"Error translating event ID {event.get('id')}: {e}")
+        return {
+            "id": event.get("id"),
+            "title_en": "",
+            "place_en": "",
+            "host_en": "",
+            "period_en": ""
+        }
+
 def build_reason(event: Optional[dict], keywords: List[str]) -> dict:
     """추천 사유 텍스트(ko/en) 구성"""
     if not event:
@@ -52,10 +137,14 @@ def build_reason(event: Optional[dict], keywords: List[str]) -> dict:
             "en": "No matching events were found. Try adjusting the filters and ask again."
         }
 
-    title = event.get("title") or "행사"
+    # ko
+    title_ko = event.get("title") or "행사"
     location = event.get("place") or event.get("location") or ""
     period = event.get("period") or event.get("date") or event.get("datetime") or ""
     host = event.get("host") or event.get("organization") or ""
+
+    # en (번역 필드 우선 사용)
+    title_en = event.get("title_en") or title_ko
 
     top_keywords = [k for k in (keywords or []) if k][:3]
     keyword_str = ", ".join(top_keywords)
@@ -64,11 +153,11 @@ def build_reason(event: Optional[dict], keywords: List[str]) -> dict:
     reason_en = []
 
     if keyword_str:
-        reason_ko.append(f"'{keyword_str}' 키워드와 가장 잘 맞는 '{title}' 행사를 추천했어요.")
-        reason_en.append(f"We matched the keywords '{keyword_str}' with the event '{title}'.")
+        reason_ko.append(f"'{keyword_str}' 키워드와 가장 잘 맞는 '{title_ko}' 행사를 추천했어요.")
+        reason_en.append(f"We matched the keywords '{keyword_str}' with the event '{title_en}'.")
     else:
-        reason_ko.append(f"'{title}' 행사를 추천했어요.")
-        reason_en.append(f"We recommend the event '{title}'.")
+        reason_ko.append(f"'{title_ko}' 행사를 추천했어요.")
+        reason_en.append(f"We recommend the event '{title_en}'.")
 
     if period:
         reason_ko.append(f"일정은 {period}입니다.")
@@ -219,19 +308,32 @@ async def extract_keywords_with_openai(raw_message: str) -> List[str]:
 
 
 def score_event(event: dict, keywords: List[str]) -> int:
-    """간단한 키워드 점수 계산"""
+    """간단한 키워드 점수 계산 (번역 필드 포함)"""
+    # 원본 필드
     title = (event.get('title') or '').lower()
     description = (event.get('deep_data') or '').lower()
     category_text = (event.get('category') or '').lower()
+    # 번역 필드
+    title_en = (event.get('title_en') or '').lower()
+    description_en = (event.get('description_en') or '').lower()
+    category_text_en = (event.get('category_en') or '').lower()
 
     score = 0
     for kw in keywords:
         k = kw.lower()
+        # 원본 텍스트에서 점수 계산
         if k in title:
             score += 2
         if k in description:
             score += 1
         if k in category_text:
+            score += 1
+        # 번역 텍스트에서 점수 계산 (가중치 동일하게 부여)
+        if title_en and k in title_en:
+            score += 2
+        if description_en and k in description_en:
+            score += 1
+        if category_text_en and k in category_text_en:
             score += 1
     return score
 
@@ -295,29 +397,59 @@ async def handle_chat_logic(raw_message: str) -> dict:
 # =========================
 @app.on_event("startup")
 async def load_events_data():
-    """서버 시작 시 events.json 로딩"""
+    """서버 시작 시 events.json 및 번역 파일 로딩"""
     global events_data
+    
+    # 1. 원본 데이터 로드
     try:
         async with aiofiles.open(EVENTS_JSON_PATH, mode="r", encoding="utf-8") as f:
             content = await f.read()
             data = json.loads(content)
-            # 파일이 배열이면 그대로, { "events": [...] } 구조면 events만 취함
             if isinstance(data, dict) and "events" in data:
-                events_data = data["events"] or []
+                raw_events = data["events"] or []
             elif isinstance(data, list):
-                events_data = data
+                raw_events = data
             else:
-                events_data = []
-        print(f"[startup] Loaded events: {len(events_data)} from {EVENTS_JSON_PATH}")
+                raw_events = []
+        
+        # 각 이벤트에 고유 ID 부여 (인덱스 사용)
+        events_data = [{**event, "id": i} for i, event in enumerate(raw_events)]
+        print(f"[startup] Loaded {len(events_data)} events from {EVENTS_JSON_PATH}")
+        for ev in events_data:
+            ev["state"] = compute_event_state(ev.get("period") or "")
     except FileNotFoundError:
         events_data = []
-        print(f"[startup] events.json 파일을 찾을 수 없습니다: {EVENTS_JSON_PATH}")
+        print(f"[startup] Could not find events.json: {EVENTS_JSON_PATH}")
     except json.JSONDecodeError:
         events_data = []
-        print(f"[startup] events.json 디코딩 중 오류가 발생했습니다: {EVENTS_JSON_PATH}")
+        print(f"[startup] Error decoding events.json: {EVENTS_JSON_PATH}")
+
+    # 2. 번역 데이터 로드 및 병합
+    if not os.path.exists(EVENTS_EN_JSON_PATH):
+        print(f"[startup] Translated events file not found: {EVENTS_EN_JSON_PATH}")
+        print("[startup] You can generate it by calling the /api/translate-events endpoint.")
+    else:
+        try:
+            async with aiofiles.open(EVENTS_EN_JSON_PATH, mode="r", encoding="utf-8") as f:
+                translated_events_list = json.loads(await f.read())
+                
+                # id를 키로 하는 딕셔너리로 변환하여 빠른 조회를 위함
+                translated_map = {item['id']: item for item in translated_events_list}
+                
+                merged_count = 0
+                for event in events_data:
+                    if event['id'] in translated_map:
+                        event.update(translated_map[event['id']])
+                        merged_count += 1
+                print(f"[startup] Merged {merged_count} translated events from {EVENTS_EN_JSON_PATH}")
+
+        except json.JSONDecodeError:
+            print(f"[startup] Error decoding {EVENTS_EN_JSON_PATH}. Skipping merge.")
+        except Exception as e:
+            print(f"[startup] An error occurred while merging translated data: {e}")
 
     if not OPENAI_API_KEY:
-        print("[warn] OPENAI_API_KEY 환경변수가 설정되지 않았습니다. 키워드 추출은 간단 폴백 로직을 사용합니다.")
+        print("[warn] OPENAI_API_KEY is not set. Keyword extraction and translation will use fallback logic.")
 
 
 # =========================
@@ -365,7 +497,33 @@ async def api_chat(request: Request):
 async def api_events():
     """행사 목록 API (GET /api/events)"""
     return {"events": events_data}
+@app.post("/api/translate-events")
+async def api_translate_events():
+    if not openai_client:
+        return JSONResponse(status_code=400, content={"message": "OpenAI API key is not configured."})
 
+    print("Starting event translation...")
+
+    translated_events = []
+
+    batch_size = 10  # 한 번에 10개씩 번역
+    for i in range(0, len(events_data), batch_size):
+        batch = events_data[i:i+batch_size]
+        tasks = [translate_event_with_openai(event) for event in batch]
+        results = await asyncio.gather(*tasks)
+
+        # 성공한 것만 추가
+        translated_events.extend([r for r in results if r and r.get("id") is not None])
+
+        print(f"Translated batch {i//batch_size + 1} ({len(translated_events)}/{len(events_data)})")
+        await asyncio.sleep(1.5)  # rate limit 방지 대기
+
+    # 저장
+    async with aiofiles.open(EVENTS_EN_JSON_PATH, mode="w", encoding="utf-8") as f:
+        await f.write(json.dumps(translated_events, indent=2, ensure_ascii=False))
+
+    print(f"Successfully translated and saved {len(translated_events)} events.")
+    return {"message": f"Successfully translated {len(translated_events)} events.", "path": EVENTS_EN_JSON_PATH}
 
 # =========================
 # Legacy aliases (하위호환)
