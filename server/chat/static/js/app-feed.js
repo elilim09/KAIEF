@@ -1,4 +1,4 @@
-import { initCommonUI, translations, getLang, handleSurfaceScroll, setLang } from './app-common.js';
+import { initCommonUI, translations, getLang, handleSurfaceScroll, initFabDial } from './app-common.js';
 
 let currentLang = getLang();
 const feedList = document.getElementById('feedList');
@@ -15,9 +15,6 @@ const feedScrollTopBtn = document.getElementById('feedScrollTop');
 const feedFilterEl = document.querySelector('.feed-filter');
 const feedFloating = document.getElementById('feedFloating');
 const root = document.documentElement;
-const moreBtn = document.getElementById('moreBtn');
-const moreWrap = document.getElementById('moreWrap');
-const fabDial = document.getElementById('fabDial');
 
 let feedLoaded = false;
 let cachedEvents = [];
@@ -26,9 +23,9 @@ let activeSort = feedSortSelect?.value || 'recent';
 let activeSearchTerm = '';
 let activeSearchTermRaw = '';
 let lastFeedScrollTop = 0;
-let dialOpen = false;
 
 initCommonUI({ page: 'feed' });
+initFabDial();
 translations.ko.state = {
   ongoing: "진행중",
   finished: "마감",
@@ -72,35 +69,6 @@ function updateSearchLocalization() {
 
 function updateSearchUI() {
   if (feedSearchClear) feedSearchClear.hidden = activeSearchTerm.length === 0;
-}
-
-function toggleDial(force) {
-  if (!fabDial) return;
-  const willOpen = typeof force === 'boolean' ? force : !dialOpen;
-  dialOpen = willOpen;
-  fabDial.classList.toggle('open', willOpen);
-}
-
-if (moreBtn && moreWrap && fabDial) {
-  moreBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleDial();
-  });
-  document.addEventListener('click', (e) => {
-    if (dialOpen && !moreWrap.contains(e.target)) toggleDial(false);
-  });
-  fabDial.addEventListener('click', (e) => {
-    const btn = e.target.closest('.mini-fab');
-    if (!btn) return;
-    const action = btn.dataset.action;
-    if (action === 'go-chat' || action === 'go-feed') {
-      const href = btn.dataset.href;
-      if (href) window.location.href = href;
-    } else if (action === 'toggle-language') {
-      setLang(currentLang === 'ko' ? 'en' : 'ko');
-    }
-    toggleDial(false);
-  });
 }
 
 function applySearchTerm(rawValue, options = {}) {

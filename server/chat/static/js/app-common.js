@@ -138,6 +138,55 @@ export const setLang = (lang) => {
   window.dispatchEvent(new CustomEvent('kaief:lang', { detail: { lang: currentLang } }));
 };
 
+export function initFabDial({ triggerId = 'moreBtn', wrapId = 'moreWrap', dialId = 'fabDial' } = {}) {
+  const trigger = typeof triggerId === 'string' ? document.getElementById(triggerId) : triggerId;
+  const wrap = typeof wrapId === 'string' ? document.getElementById(wrapId) : wrapId;
+  const dial = typeof dialId === 'string' ? document.getElementById(dialId) : dialId;
+
+  if (!trigger || !wrap || !dial) return () => {};
+
+  let open = false;
+  const toggle = (force) => {
+    open = typeof force === 'boolean' ? force : !open;
+    dial.classList.toggle('open', open);
+    trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+
+  const handleTriggerClick = (event) => {
+    event.stopPropagation();
+    toggle();
+  };
+
+  const handleDocumentClick = (event) => {
+    if (open && !wrap.contains(event.target)) toggle(false);
+  };
+
+  const handleDialClick = (event) => {
+    const btn = event.target.closest('.mini-fab');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    if (action === 'go-chat' || action === 'go-feed') {
+      const href = btn.dataset.href;
+      if (href) window.location.href = href;
+    } else if (action === 'toggle-language') {
+      setLang(getLang() === 'ko' ? 'en' : 'ko');
+    }
+    toggle(false);
+  };
+
+  trigger.addEventListener('click', handleTriggerClick);
+  document.addEventListener('click', handleDocumentClick);
+  dial.addEventListener('click', handleDialClick);
+
+  toggle(false);
+
+  return () => {
+    trigger.removeEventListener('click', handleTriggerClick);
+    document.removeEventListener('click', handleDocumentClick);
+    dial.removeEventListener('click', handleDialClick);
+  };
+}
+
 export const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
 
 export function applyThemeFromSeed(hex) {

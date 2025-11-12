@@ -1,4 +1,4 @@
-import { initCommonUI, translations, getLang, handleSurfaceScroll, setLang } from './app-common.js';
+import { initCommonUI, translations, getLang, handleSurfaceScroll, initFabDial } from './app-common.js';
 
 let currentLang = getLang();
 const chatList = document.getElementById('chatList');
@@ -6,9 +6,6 @@ const input = document.getElementById('input');
 const send = document.getElementById('send');
 const chips = document.getElementById('chips');
 const chipLabel = document.getElementById('chipLabel');
-const moreBtn = document.getElementById('moreBtn');
-const moreWrap = document.getElementById('moreWrap');
-const fabDial = document.getElementById('fabDial');
 const charCounter = document.getElementById('charCounter');
 const inputHint = document.getElementById('inputHint');
 const scrollToBottom = document.getElementById('scrollToBottom');
@@ -18,11 +15,11 @@ const introBadge = document.getElementById('introBadge');
 const introText = document.getElementById('introText');
 const introHint = document.getElementById('introHint');
 
-let dialOpen = false;
 let typingEl = null;
 let lastScrollTop = 0;
 
 initCommonUI({ page: 'chat' });
+initFabDial();
 
 function updateComposerHeight() {
   if (!composer || !root) return;
@@ -209,32 +206,6 @@ chips.addEventListener('click', (e) => {
   updateCharCounter();
   input.focus();
 });
-
-/* ===== 더보기 FAB ===== */
-function toggleDial(force) {
-  const willOpen = typeof force === 'boolean' ? force : !dialOpen;
-  dialOpen = willOpen;
-  fabDial.classList.toggle('open', willOpen);
-}
-moreBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleDial(); });
-document.addEventListener('click', (e) => {
-  if (dialOpen && !moreWrap.contains(e.target)) toggleDial(false);
-});
-
-if (fabDial) {
-  fabDial.addEventListener('click', (e) => {
-    const btn = e.target.closest('.mini-fab');
-    if (!btn) return;
-    const action = btn.dataset.action;
-    if (action === 'go-chat' || action === 'go-feed') {
-      const href = btn.dataset.href;
-      if (href) window.location.href = href;
-    } else if (action === 'toggle-language') {
-      setLang(currentLang === 'ko' ? 'en' : 'ko');
-    }
-    toggleDial(false);
-  });
-}
 
 /* ===== 언어 적용(인트로/힌트/플레이스홀더 등) ===== */
 function updateIntroSection() {
