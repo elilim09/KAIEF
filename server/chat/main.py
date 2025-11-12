@@ -173,6 +173,7 @@ async def chatbot(message: str, chat_history: list = None, session_id: str = Non
 - 날짜, 장소, 주최자는 반드시 포함
 - 이전 대화 6개까지 기억하고 컨텍스트 반영
 - 오늘 날짜: {datetime.now().strftime('%Y-%m-%d')}
+- 각 필드가 없으면 알수없음으로 설정
 
 ### 행사 데이터
 {json.dumps(compact_events, ensure_ascii=False)}
