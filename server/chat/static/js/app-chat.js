@@ -213,6 +213,10 @@ function updateIntroSection() {
     input.placeholder = t.placeholder;
     input.setAttribute('aria-label', t.placeholder);
   }
+  if (scrollToBottom) {
+    scrollToBottom.setAttribute('aria-label', t.scrollToBottom);
+    scrollToBottom.setAttribute('title', t.scrollToBottom);
+  }
   const labelEl = send.querySelector('.label');
   if (labelEl) labelEl.textContent = t.sendLabel;
   const hintEl = inputHint;
