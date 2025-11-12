@@ -12,6 +12,8 @@ const fabDial = document.getElementById('fabDial');
 const charCounter = document.getElementById('charCounter');
 const inputHint = document.getElementById('inputHint');
 const scrollToBottom = document.getElementById('scrollToBottom');
+const composer = document.querySelector('.composer');
+const root = document.documentElement;
 const introBadge = document.getElementById('introBadge');
 const introText = document.getElementById('introText');
 const introHint = document.getElementById('introHint');
@@ -21,6 +23,23 @@ let typingEl = null;
 let lastScrollTop = 0;
 
 initCommonUI({ page: 'chat' });
+
+function updateComposerHeight() {
+  if (!composer || !root) return;
+  const height = composer.getBoundingClientRect().height || 0;
+  if (height > 0) {
+    root.style.setProperty('--composer-height', `${Math.ceil(height)}px`);
+  }
+}
+
+if (composer) {
+  updateComposerHeight();
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(updateComposerHeight);
+    ro.observe(composer);
+  }
+  window.addEventListener('resize', updateComposerHeight);
+}
 
 /* ===== 유틸 ===== */
 function escapeHTML(str) {
@@ -281,3 +300,4 @@ renderChips();
 updateSend();
 updateCharCounter();
 handleSurfaceScroll(chatList);
+handleScrollToBottom();
