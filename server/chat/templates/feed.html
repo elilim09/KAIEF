@@ -89,16 +89,33 @@
 
     <!-- ===== 피드 페이지 본문 ===== -->
     <section class="feed" id="feedView" role="main">
-      <div class="feed-filter">
+      <div class="feed-filter" id="feedFilter">
         <span class="feed-filter-label" data-i18n="feedFilterLabel">주요 기관 바로보기</span>
         <div class="feed-filter-chips" id="feedFilters"></div>
         <div class="feed-sort">
+          <span class="feed-sort-label" data-i18n="feedSortLabel">정렬</span>
+          <select id="feedSort" class="feed-sort-select">
+            <option value="recent">최신순</option>
+            <option value="title">제목순</option>
+          </select>
         </div>
       </div>
       <div id="feedMessage" class="feed-message" aria-live="polite"></div>
       <div id="feedList" class="feed-list" role="list"></div>
       <div id="feedFootnote" class="feed-message text-xs opacity-70"></div>
     </section>
+    <div id="feedFloatingTools" class="feed-floating-tools offscreen" aria-hidden="true">
+      <button id="feedScrollTop" class="feed-scroll-top" type="button" aria-label="최상단으로 이동">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 15l7-7 7 7"/><path d="M12 8v12"/></svg>
+      </button>
+      <div class="feed-search-bar" role="search">
+        <svg class="feed-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="m20 20-3.35-3.35"/></svg>
+        <input id="feedSearchInput" class="feed-search-input" type="search" autocomplete="off" placeholder="행사를 검색해보세요" aria-label="행사 검색" />
+        <button id="feedSearchClear" class="feed-search-clear" type="button" aria-label="검색어 지우기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="{{ url_for('static', path='js/app-common.js') }}"></script>
