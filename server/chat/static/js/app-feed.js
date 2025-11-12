@@ -1,4 +1,4 @@
-import { initCommonUI, translations, getLang, handleSurfaceScroll } from './app-common.js';
+import { initCommonUI, translations, getLang, handleSurfaceScroll, initFabDial } from './app-common.js';
 
 let currentLang = getLang();
 const feedList = document.getElementById('feedList');
@@ -25,6 +25,7 @@ let activeSearchTermRaw = '';
 let lastFeedScrollTop = 0;
 
 initCommonUI({ page: 'feed' });
+initFabDial();
 translations.ko.state = {
   ongoing: "진행중",
   finished: "마감",

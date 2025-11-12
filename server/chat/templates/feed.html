@@ -61,15 +61,6 @@
         </div>
       </div>
 
-      <div class="app-controls">
-        <!-- 페이지 링크 기반 네비게이션 -->
-        <div class="tab-group" role="tablist">
-          <a id="navChat" href="{{ url_for('chat_page') }}" class="tab" role="tab" aria-selected="false" data-i18n="navChat">AI 챗봇</a>
-          <a id="navFeed" href="{{ url_for('feed_page') }}" class="tab active" role="tab" aria-selected="true" aria-current="page" data-i18n="navFeed">행사 피드</a>
-        </div>
-        <button id="languageToggle" type="button" class="chip language-toggle" aria-label="언어 전환">EN</button>
-      </div>
-
       <div id="brandPanel" class="popover">
         <div class="text-sm font-semibold mb-2">테마 설정</div>
         <div class="flex flex-wrap gap-2 mb-3">
@@ -107,16 +98,37 @@
         <button id="feedScrollTop" class="feed-scroll-top" type="button" aria-label="최상단으로 이동">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
         </button>
-        <form id="feedSearchForm" class="feed-search" role="search">
-          <svg class="feed-search-icon" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input id="feedSearch" type="search" autocomplete="off" placeholder="행사를 검색해보세요" aria-label="피드 검색" />
-          <button id="feedSearchClear" type="button" aria-label="검색어 지우기" hidden>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-          </button>
-          <button id="feedSearchSubmit" type="submit" aria-label="검색">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35"/><circle cx="11" cy="11" r="7"/></svg>
-          </button>
-        </form>
+        <div class="feed-search-row">
+          <div id="moreWrap" class="relative">
+            <button id="moreBtn" class="icon-button" aria-label="추가 옵션">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            </button>
+            <div id="fabDial" class="fab-dial" aria-label="빠른 작업 메뉴">
+              <button class="mini-fab" data-action="go-chat" data-href="{{ url_for('chat_page') }}" title="AI 챗봇 페이지로 이동" aria-label="AI 챗봇 페이지로 이동">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-5 4V7a2 2 0 0 1 2-2z"/></svg>
+                <span class="fab-label" data-i18n="fabChatLabel">AI 챗봇</span>
+              </button>
+              <button class="mini-fab" data-action="go-feed" data-href="{{ url_for('feed_page') }}" title="행사 피드 페이지로 이동" aria-label="행사 피드 페이지로 이동">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h6M7 16h8"/></svg>
+                <span class="fab-label" data-i18n="fabFeedLabel">행사 피드</span>
+              </button>
+              <button class="mini-fab" data-action="toggle-language" title="언어 전환" aria-label="언어 전환">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14.5 14.5 0 0 1 4 9 14.5 14.5 0 0 1-4 9 14.5 14.5 0 0 1-4-9 14.5 14.5 0 0 1 4-9z"/></svg>
+                <span class="fab-label" data-i18n="fabLanguageLabel">한/영</span>
+              </button>
+            </div>
+          </div>
+          <form id="feedSearchForm" class="feed-search feed-search-compact" role="search">
+            <svg class="feed-search-icon" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input id="feedSearch" type="search" autocomplete="off" placeholder="행사를 검색해보세요" aria-label="피드 검색" />
+            <button id="feedSearchClear" type="button" aria-label="검색어 지우기" hidden>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+            <button id="feedSearchSubmit" type="submit" aria-label="검색">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-4.35-4.35"/><circle cx="11" cy="11" r="7"/></svg>
+            </button>
+          </form>
+        </div>
       </div>
     </section>
   </div>
