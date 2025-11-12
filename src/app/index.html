@@ -73,7 +73,6 @@
 
       --gradient-primary: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #A855F7 100%);
       --gradient-surface: linear-gradient(180deg, var(--md-sys-color-surface) 0%, var(--md-sys-color-surface-container-low) 100%);
-      --view-height: calc(100dvh - 180px);
     }
 
     [data-theme="dark"] {
@@ -116,9 +115,10 @@
       text-rendering: optimizeLegibility;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      margin: 0;
     }
 
-    .app { width: min(430px, 100vw); min-height: 100dvh; margin: 0 auto; position: relative; }
+    .app { width: min(430px, 100vw); min-height: 100dvh; margin: 0 auto; position: relative; display:flex; flex-direction:column; }
 
     .app-bar { position: sticky; top: 0; z-index: 30; background: var(--md-sys-color-surface); backdrop-filter: saturate(1.3) blur(10px); border-bottom: 1px solid var(--md-sys-color-outline-variant); transition: padding var(--dur-standard) var(--easing-emphasized), box-shadow var(--dur-standard) var(--easing-standard); padding: 18px 20px 12px; }
     .app-bar.compact { padding: 8px 16px; box-shadow: var(--elevation-1); }
@@ -148,10 +148,10 @@
     .chip:hover{ transform: translateY(-1px); background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); border-color: var(--md-sys-color-primary); }
     .chip[data-active="true"]{ background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); border-color: var(--md-sys-color-primary); box-shadow: var(--elevation-2); }
 
-    .view { display:none; }
+    .view { display:none; flex:1; min-height:0; }
     .view.active { display:flex; }
-    .chat { height: var(--view-height); display:flex; flex-direction:column; background: var(--md-sys-color-surface); }
-    .chat-list { flex:1; padding: 14px 20px; overflow-y:auto; scroll-behavior:smooth; }
+    .chat { flex:1; min-height:0; display:flex; flex-direction:column; background: var(--md-sys-color-surface); }
+    .chat-list { flex:1; min-height:0; padding: 14px 20px; overflow-y:auto; scroll-behavior:smooth; }
     .chat-list::-webkit-scrollbar{ width:6px; } .chat-list::-webkit-scrollbar-thumb{ background: var(--md-sys-color-outline); border-radius:3px; }
 
     .bubble{ max-width:82%; line-height:1.55; font-size:15px; padding:14px 16px; border-radius: var(--shape-corner-xl); position:relative; animation: slideUp var(--dur-standard) var(--easing-emphasized); }
@@ -160,7 +160,7 @@
     .bubble.user{ background: var(--gradient-primary); color: var(--md-sys-color-on-primary); margin-left:auto; box-shadow: var(--elevation-2); border-bottom-right-radius: var(--shape-corner-sm); }
     @keyframes slideUp { from { opacity:0; transform: translateY(16px) scale(.98); } to { opacity:1; transform: translateY(0) scale(1); } }
 
-    .composer { padding: 10px 12px 14px; border-top: 1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface); position:relative; z-index: 10; }
+    .composer { padding: 10px 12px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface); position:relative; z-index: 10; }
     .composer-row { display:flex; gap:10px; align-items:flex-end; }
 
     .field { flex:1; display:flex; align-items:center; background: var(--md-sys-color-surface-container); border: 2px solid var(--md-sys-color-outline-variant); border-radius: var(--shape-corner-full); transition: border-color var(--dur-quick) var(--easing-standard), box-shadow var(--dur-quick) var(--easing-standard), background var(--dur-quick) var(--easing-standard); padding: 2px 6px; position:relative; }
@@ -191,14 +191,18 @@
     .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; padding: 0 6px; }
     .chip-label{ font-size:12px; font-weight:600; opacity:.7; margin-bottom:6px; padding:0 6px; }
 
-    .feed { height: var(--view-height); display:flex; flex-direction:column; background: var(--md-sys-color-surface); }
+    .feed { flex:1; min-height:0; display:flex; flex-direction:column; background: var(--md-sys-color-surface); }
     .feed-header { padding: 18px 20px 12px; border-bottom:1px solid var(--md-sys-color-outline-variant); }
     .feed-header h2 { font-size:18px; font-weight:700; letter-spacing:-0.01em; }
     .feed-header p { margin-top:4px; font-size:13px; line-height:1.6; opacity:.8; }
-    .feed-filter { padding: 12px 20px; border-bottom:1px solid var(--md-sys-color-outline-variant); display:flex; flex-direction:column; gap:8px; }
+    .feed-filter { padding: 12px 20px; border-bottom:1px solid var(--md-sys-color-outline-variant); display:flex; flex-direction:column; gap:12px; }
+    .feed-filter-top { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
     .feed-filter-label { font-size:12px; font-weight:600; opacity:.7; }
     .feed-filter-chips { display:flex; flex-wrap:wrap; gap:8px; }
-    .feed-list { flex:1; overflow-y:auto; padding: 12px 20px 24px; display:flex; flex-direction:column; gap:16px; }
+    .feed-sort { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; opacity:.75; }
+    .feed-sort-select { appearance:none; border-radius: var(--shape-corner-full); border:1px solid var(--md-sys-color-outline-variant); background: var(--md-sys-color-surface-container-low); color: var(--md-sys-color-on-surface); padding: 6px 28px 6px 12px; font-size:13px; font-weight:600; position:relative; min-width:130px; box-shadow: var(--elevation-1); background-image: linear-gradient(45deg, transparent 0%, transparent 70%, color-mix(in oklab, var(--md-sys-color-on-surface) 45%, transparent) 70%), linear-gradient(135deg, transparent 0%, transparent 70%, color-mix(in oklab, var(--md-sys-color-on-surface) 45%, transparent) 70%); background-repeat: no-repeat; background-position: right 12px top 45%, right 6px top 45%; background-size: 8px 8px, 8px 8px; cursor:pointer; }
+    .feed-sort-select:focus-visible { outline:3px solid color-mix(in oklab, var(--md-sys-color-primary) 45%, transparent); outline-offset:2px; }
+    .feed-list { flex:1; min-height:0; overflow-y:auto; padding: 12px 20px 24px; display:flex; flex-direction:column; gap:16px; }
     .feed-message { padding: 16px 20px; font-size:13px; opacity:.8; }
     .feed-card { border:1px solid var(--md-sys-color-outline-variant); border-radius: var(--shape-corner-xl); background: var(--md-sys-color-surface-container-low); padding: 18px; box-shadow: var(--elevation-1); transition: transform var(--dur-quick) var(--easing-standard), box-shadow var(--dur-quick) var(--easing-standard); }
     .feed-card:hover { transform: translateY(-2px); box-shadow: var(--elevation-3); }
@@ -319,7 +323,17 @@
         <p data-i18n="feedDescription">국립 문화·예술 기관의 최신 행사 소식을 모아서 제공합니다.</p>
       </div>
       <div class="feed-filter">
-        <span class="feed-filter-label" data-i18n="feedFilterLabel">주요 기관 바로보기</span>
+        <div class="feed-filter-top">
+          <span class="feed-filter-label" data-i18n="feedFilterLabel">주요 기관 바로보기</span>
+          <label class="feed-sort" for="feedSort">
+            <span data-i18n="feedSortLabel">정렬</span>
+            <select id="feedSort" class="feed-sort-select">
+              <option value="latest" data-i18n-option="feedSortLatest">최신순</option>
+              <option value="upcoming" data-i18n-option="feedSortUpcoming">다가오는 순</option>
+              <option value="title" data-i18n-option="feedSortTitle">이름순</option>
+            </select>
+          </label>
+        </div>
         <div class="feed-filter-chips" id="feedFilters"></div>
       </div>
       <div id="feedMessage" class="feed-message" aria-live="polite"></div>
@@ -334,7 +348,8 @@
     const STORAGE_KEYS = {
       theme: 'kaief_theme',
       seed: 'kaief_seed',
-      lang: 'kaief_lang'
+      lang: 'kaief_lang',
+      feedSort: 'kaief_feed_sort'
     };
 
     const translations = {
@@ -362,6 +377,10 @@
         feedTitle: "실시간 행사 피드",
         feedDescription: "국립 문화·예술 기관의 최신 행사 소식을 모아서 제공합니다.",
         feedFilterLabel: "주요 기관 바로보기",
+        feedSortLabel: "정렬",
+        feedSortLatest: "최신순",
+        feedSortUpcoming: "다가오는 순",
+        feedSortTitle: "이름순",
         feedLoading: "행사 데이터를 불러오는 중이에요...",
         feedEmpty: "현재 조건에 맞는 행사가 없습니다. 필터를 변경해보세요.",
         feedError: "행사 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.",
@@ -411,6 +430,10 @@
         feedTitle: "Live event feed",
         feedDescription: "Fresh cultural and arts programs curated from national institutions across Korea.",
         feedFilterLabel: "Featured institutions",
+        feedSortLabel: "Sort",
+        feedSortLatest: "Newest first",
+        feedSortUpcoming: "Upcoming",
+        feedSortTitle: "A–Z",
         feedLoading: "Loading event data...",
         feedEmpty: "No events match the current filter. Try another option.",
         feedError: "Unable to load event data right now. Please try again later.",
@@ -466,6 +489,7 @@
     const feedMessage = document.getElementById('feedMessage');
     const feedFootnote = document.getElementById('feedFootnote');
     const feedFiltersEl = document.getElementById('feedFilters');
+    const feedSortSelect = document.getElementById('feedSort');
     const chips = document.getElementById('chips');
     const chipLabel = document.getElementById('chipLabel');
     const input = document.getElementById('input');
@@ -482,6 +506,13 @@
     let currentView = 'chat';
     let dialOpen = false;
     let typingEl = null;
+    const FEED_SORT_OPTIONS = ['latest', 'upcoming', 'title'];
+    const DEFAULT_FEED_SORT = FEED_SORT_OPTIONS[0];
+    let activeFeedSort = localStorage.getItem(STORAGE_KEYS.feedSort) || DEFAULT_FEED_SORT;
+    if (!FEED_SORT_OPTIONS.includes(activeFeedSort)) {
+      activeFeedSort = DEFAULT_FEED_SORT;
+    }
+
     let feedLoaded = false;
     let cachedEvents = [];
     let activeFeedFilter = 'all';
@@ -799,6 +830,19 @@
       });
     }
 
+    if (feedSortSelect) {
+      feedSortSelect.value = activeFeedSort;
+      feedSortSelect.addEventListener('change', () => {
+        const value = feedSortSelect.value;
+        activeFeedSort = FEED_SORT_OPTIONS.includes(value) ? value : DEFAULT_FEED_SORT;
+        localStorage.setItem(STORAGE_KEYS.feedSort, activeFeedSort);
+        if (feedList) {
+          feedList.scrollTop = 0;
+        }
+        renderFeed();
+      });
+    }
+
     function renderFeedFilters() {
       if (!feedFiltersEl) return;
       feedFiltersEl.innerHTML = '';
@@ -828,6 +872,165 @@
         const haystack = `${ev.host || ''} ${ev.organization || ''} ${ev.title || ''}`.toLowerCase();
         return keywords.some((keyword) => haystack.includes(keyword));
       });
+    }
+
+    const EVENT_DATE_FIELDS = [
+      'datetime',
+      'date',
+      'period',
+      'schedule',
+      'start_date',
+      'startDate',
+      'start',
+      'begin',
+      'beginDate',
+      'from',
+      'reg_dt',
+      'regDate',
+      'created_at',
+      'createdAt',
+      'updated_at',
+      'updatedAt',
+      'timestamp',
+      'published_at',
+      'publishedAt',
+      'open_date',
+      'openDate',
+      'end_date',
+      'endDate',
+      'end',
+      'close_date',
+      'closeDate'
+    ];
+
+    const EVENT_NESTED_DATE_KEYS = [
+      'start',
+      'start_date',
+      'startDate',
+      'begin',
+      'beginDate',
+      'from',
+      'end',
+      'end_date',
+      'endDate',
+      'close',
+      'close_date',
+      'closeDate',
+      'timestamp',
+      'date'
+    ];
+
+    const eventTimeCache = new WeakMap();
+
+    function isFiniteNumber(value) {
+      return typeof value === 'number' && Number.isFinite(value);
+    }
+
+    function collectTimeCandidates(value, bucket) {
+      if (!value) return;
+      if (typeof value === 'number') {
+        if (isFiniteNumber(value) && value > 0) {
+          bucket.push(value);
+        }
+        return;
+      }
+      if (value instanceof Date) {
+        bucket.push(value.getTime());
+        return;
+      }
+      if (Array.isArray(value)) {
+        value.forEach((item) => collectTimeCandidates(item, bucket));
+        return;
+      }
+      if (typeof value === 'object') {
+        EVENT_NESTED_DATE_KEYS.forEach((key) => {
+          if (value && key in value) {
+            collectTimeCandidates(value[key], bucket);
+          }
+        });
+        return;
+      }
+      const text = String(value).trim();
+      if (!text) return;
+      const yearMatches = text.matchAll(/(20\d{2})[.\-\/\s년]*(\d{1,2})[.\-\/\s월]*(\d{1,2})/g);
+      for (const match of yearMatches) {
+        const year = Number(match[1]);
+        const month = Number(match[2]);
+        const day = Number(match[3]);
+        if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+          bucket.push(new Date(year, month - 1, day).getTime());
+        }
+      }
+      const compact = text.match(/(20\d{2})(\d{2})(\d{2})/);
+      if (compact) {
+        const year = Number(compact[1]);
+        const month = Number(compact[2]);
+        const day = Number(compact[3]);
+        if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+          bucket.push(new Date(year, month - 1, day).getTime());
+        }
+      }
+      const parsed = Date.parse(text);
+      if (isFiniteNumber(parsed)) {
+        bucket.push(parsed);
+      }
+    }
+
+    function getEventTimeRange(ev) {
+      if (!ev || typeof ev !== 'object') {
+        return { earliest: null, latest: null };
+      }
+      if (eventTimeCache.has(ev)) {
+        return eventTimeCache.get(ev);
+      }
+      const times = [];
+      EVENT_DATE_FIELDS.forEach((field) => {
+        if (field in ev) {
+          collectTimeCandidates(ev[field], times);
+        }
+      });
+      if (Array.isArray(ev.dates)) {
+        collectTimeCandidates(ev.dates, times);
+      }
+      const earliest = times.length ? Math.min(...times) : null;
+      const latest = times.length ? Math.max(...times) : null;
+      const result = { earliest, latest };
+      eventTimeCache.set(ev, result);
+      return result;
+    }
+
+    function compareAlphabetically(a, b, locale) {
+      const hostA = String(a.host || a.organization || '');
+      const hostB = String(b.host || b.organization || '');
+      const titleA = String(a.title || '');
+      const titleB = String(b.title || '');
+      const hostCompare = hostA.localeCompare(hostB, locale, { sensitivity: 'base' });
+      if (hostCompare !== 0) return hostCompare;
+      return titleA.localeCompare(titleB, locale, { sensitivity: 'base' });
+    }
+
+    function sortEventsByMode(a, b, mode, locale) {
+      if (mode === 'latest') {
+        const rangeA = getEventTimeRange(a);
+        const rangeB = getEventTimeRange(b);
+        const aLatest = isFiniteNumber(rangeA.latest) ? rangeA.latest : -Infinity;
+        const bLatest = isFiniteNumber(rangeB.latest) ? rangeB.latest : -Infinity;
+        if (aLatest !== bLatest) {
+          return bLatest - aLatest;
+        }
+        return compareAlphabetically(a, b, locale);
+      }
+      if (mode === 'upcoming') {
+        const rangeA = getEventTimeRange(a);
+        const rangeB = getEventTimeRange(b);
+        const aEarliest = isFiniteNumber(rangeA.earliest) ? rangeA.earliest : Infinity;
+        const bEarliest = isFiniteNumber(rangeB.earliest) ? rangeB.earliest : Infinity;
+        if (aEarliest !== bEarliest) {
+          return aEarliest - bEarliest;
+        }
+        return compareAlphabetically(a, b, locale);
+      }
+      return compareAlphabetically(a, b, locale);
     }
 
     function createFeedCard(ev) {
@@ -874,15 +1077,8 @@
       }
       feedMessage.textContent = '';
       const locale = currentLang === 'ko' ? 'ko' : 'en';
-      const sorted = filtered.slice().sort((a, b) => {
-        const hostA = String(a.host || a.organization || '');
-        const hostB = String(b.host || b.organization || '');
-        const titleA = String(a.title || '');
-        const titleB = String(b.title || '');
-        const hostCompare = hostA.localeCompare(hostB, locale, { sensitivity: 'base' });
-        if (hostCompare !== 0) return hostCompare;
-        return titleA.localeCompare(titleB, locale, { sensitivity: 'base' });
-      });
+      const sortMode = FEED_SORT_OPTIONS.includes(activeFeedSort) ? activeFeedSort : DEFAULT_FEED_SORT;
+      const sorted = filtered.slice().sort((a, b) => sortEventsByMode(a, b, sortMode, locale));
       sorted.forEach((ev) => {
         const card = createFeedCard(ev);
         if (card) feedList.appendChild(card);
@@ -950,6 +1146,15 @@
           el.textContent = t[key];
         }
       });
+      if (feedSortSelect) {
+        feedSortSelect.querySelectorAll('option[data-i18n-option]').forEach((opt) => {
+          const key = opt.dataset.i18nOption;
+          if (t[key]) {
+            opt.textContent = t[key];
+          }
+        });
+        feedSortSelect.value = FEED_SORT_OPTIONS.includes(activeFeedSort) ? activeFeedSort : DEFAULT_FEED_SORT;
+      }
       input.placeholder = t.placeholder;
       input.setAttribute('aria-label', t.placeholder);
       const labelEl = send.querySelector('.label');
