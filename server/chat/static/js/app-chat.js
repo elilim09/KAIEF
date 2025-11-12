@@ -18,6 +18,21 @@ const introHint = document.getElementById('introHint');
 let typingEl = null;
 let lastScrollTop = 0;
 
+const SESSION_KEY = 'kaief_chat_client_id';
+let clientId = null;
+try {
+  clientId = window.sessionStorage.getItem(SESSION_KEY);
+  if (!clientId) {
+    const uuid = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `anon-${Math.random().toString(36).slice(2, 10)}`;
+    clientId = `web-${uuid}`;
+    window.sessionStorage.setItem(SESSION_KEY, clientId);
+  }
+} catch (err) {
+  clientId = `web-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 initCommonUI({ page: 'chat' });
 initFabDial();
 
@@ -228,16 +243,43 @@ function updateIntroSection() {
 function buildAssistantResponse(payload) {
   const t = translations[currentLang];
   const keywords = Array.isArray(payload.keywords) ? payload.keywords : [];
-  const reasonData = payload.reason;
-  const reasonText = typeof reasonData === 'string'
-    ? reasonData
-    : (reasonData?.[currentLang] || reasonData?.ko || '');
+
+  let message = typeof payload.message === 'string' ? payload.message.trim() : '';
+  if (!message) {
+    const legacyReason = payload.reason;
+    if (typeof legacyReason === 'string') message = legacyReason;
+    else if (legacyReason && typeof legacyReason === 'object') message = legacyReason[currentLang] || legacyReason.ko || '';
+  }
+
+  let events = Array.isArray(payload.events) ? payload.events : [];
+  if (!events.length && payload.recommended_event && Object.keys(payload.recommended_event).length) {
+    events = [payload.recommended_event];
+  }
+
+  const highlights = Array.isArray(payload.highlights) ? payload.highlights : [];
+  const notes = typeof payload.notes === 'string' ? payload.notes.trim() : '';
+
   let html = assistantHeaderHTML();
   if (keywords.length) {
     html += `<div class="text-sm opacity-70 mb-1">${t.keywordTitle}</div>${renderKeywords(keywords)}`;
   }
-  if (reasonText) html += `<div class="mt-3 text-sm leading-6">${formatMultiline(reasonText)}</div>`;
-  html += renderEventCard(payload.recommended_event || {}, { showLink: true });
+  if (message) {
+    html += `<div class="mt-3 text-sm leading-6">${formatMultiline(message)}</div>`;
+  }
+  if (highlights.length) {
+    const items = highlights.map((item) => `<li>${escapeHTML(item)}</li>`).join('');
+    html += `<ul class="mt-3 text-sm leading-6 list-disc pl-5">${items}</ul>`;
+  }
+  if (events.length) {
+    const cards = events.map((ev) => renderEventCard(ev, { showLink: true, lang: currentLang })).join('');
+    html += `<div class="mt-3 flex flex-col gap-3">${cards}</div>`;
+  }
+  if (notes) {
+    html += `<div class="mt-3 text-xs opacity-70">${escapeHTML(notes)}</div>`;
+  }
+  if (!message && !events.length) {
+    html += `<div class="mt-2 text-sm opacity-80">${t.noEvent}</div>`;
+  }
   return html;
 }
 async function sendMessage() {
@@ -247,13 +289,21 @@ async function sendMessage() {
   input.value = '';
   updateSend(); updateCharCounter(); showTyping();
   try {
-    const res = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, user_id: clientId })
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText || `${res.status} ${res.statusText}`);
+    }
     const data = await res.json();
     hideTyping();
     const rawResponse = data?.response;
     let responsePayload = {};
     if (rawResponse && typeof rawResponse === 'object') responsePayload = rawResponse;
-    else if (typeof rawResponse === 'string') responsePayload = { reason: { ko: rawResponse, en: rawResponse }, recommended_event: {} };
+    else if (typeof rawResponse === 'string') responsePayload = { message: rawResponse };
     const html = buildAssistantResponse(responsePayload);
     addBubble('assistant', html);
   } catch (err) {
