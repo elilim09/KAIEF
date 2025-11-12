@@ -395,7 +395,7 @@ function renderFeed() {
     const emptyIcon = activeSearchTerm ? '🔍' : '📭';
     feedMessage.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-icon">${emptyIcon}</div>
+        <div class="empty-state-icon ">${emptyIcon}</div>
         <div class="empty-state-title">${emptyTitle}</div>
         <div class="empty-state-desc">${emptyDesc}</div>
       </div>
