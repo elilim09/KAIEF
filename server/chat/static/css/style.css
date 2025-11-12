@@ -241,6 +241,13 @@ body {
 .retry-button:focus-visible { outline: 3px solid color-mix(in oklab, var(--md-sys-color-primary) 45%, transparent); outline-offset: 2px; }
 
 .feed-floating { position:absolute; left:0; right:0; bottom:0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px)); display:flex; flex-direction:column; gap:12px; pointer-events:none; z-index:25; }
+.feed-actions { display:flex; align-items:center; justify-content:center; gap:12px; pointer-events:auto; flex-wrap:wrap; }
+.feed-fab-wrap { position:relative; pointer-events:auto; }
+.feed-search { width:min(100%, 420px); flex:1 1 320px; }
+.feed-fab-wrap .icon-button { width:48px; height:48px; border-radius:var(--shape-corner-full); box-shadow:var(--elevation-3); background:color-mix(in oklab, var(--md-sys-color-surface-container-high) 92%, transparent); transition:background var(--dur-quick) var(--easing-standard), box-shadow var(--dur-quick) var(--easing-standard); pointer-events:auto; }
+.feed-fab-wrap .icon-button:hover { background:var(--md-sys-color-surface-container-highest); box-shadow:var(--elevation-4); }
+.feed-fab-wrap .icon-button:focus-visible { outline:3px solid color-mix(in oklab, var(--md-sys-color-primary) 45%, transparent); outline-offset:2px; }
+.feed-fab-wrap .fab-dial { right:auto; left:0; bottom:54px; transform-origin:bottom left; }
 .feed-search { pointer-events:auto; display:flex; align-items:center; gap:8px; padding: 10px 14px; border-radius: var(--shape-corner-xl); border:1px solid var(--md-sys-color-outline-variant); background: color-mix(in oklab, var(--md-sys-color-surface-container) 85%, transparent); box-shadow: var(--elevation-2); transition: border-color var(--dur-quick) var(--easing-standard), box-shadow var(--dur-quick) var(--easing-standard), transform var(--dur-quick) var(--easing-standard); }
 .feed-search-icon { width: 18px; height: 18px; color: color-mix(in oklab, var(--md-sys-color-on-surface) 65%, transparent); opacity: 0.75; pointer-events: none; }
 .feed-search:focus-within { border-color: var(--md-sys-color-primary); box-shadow: var(--elevation-4); transform: translateY(-1px); }

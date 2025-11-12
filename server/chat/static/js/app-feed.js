@@ -1,4 +1,4 @@
-import { initCommonUI, translations, getLang, handleSurfaceScroll } from './app-common.js';
+import { initCommonUI, translations, getLang, handleSurfaceScroll, setLang } from './app-common.js';
 
 let currentLang = getLang();
 const feedList = document.getElementById('feedList');
@@ -14,6 +14,9 @@ const feedSearchSubmit = document.getElementById('feedSearchSubmit');
 const feedScrollTopBtn = document.getElementById('feedScrollTop');
 const feedFilterEl = document.querySelector('.feed-filter');
 const feedFloating = document.getElementById('feedFloating');
+const feedMoreWrap = document.getElementById('feedMoreWrap');
+const feedMoreBtn = document.getElementById('feedMoreBtn');
+const feedFabDial = document.getElementById('feedFabDial');
 const root = document.documentElement;
 
 let feedLoaded = false;
@@ -23,6 +26,7 @@ let activeSort = feedSortSelect?.value || 'recent';
 let activeSearchTerm = '';
 let activeSearchTermRaw = '';
 let lastFeedScrollTop = 0;
+let feedDialOpen = false;
 
 initCommonUI({ page: 'feed' });
 translations.ko.state = {
@@ -64,10 +68,21 @@ function updateSearchLocalization() {
   if (feedSearchClear) feedSearchClear.setAttribute('aria-label', t.feedSearchClear || '');
   if (feedSearchSubmit) feedSearchSubmit.setAttribute('aria-label', t.feedSearchSubmit || '');
   if (feedScrollTopBtn) feedScrollTopBtn.setAttribute('aria-label', t.feedScrollTop || '');
+  if (feedMoreBtn) {
+    feedMoreBtn.setAttribute('aria-label', t.moreAria || '');
+    feedMoreBtn.setAttribute('title', t.moreAria || '');
+  }
 }
 
 function updateSearchUI() {
   if (feedSearchClear) feedSearchClear.hidden = activeSearchTerm.length === 0;
+}
+
+function toggleFeedDial(force) {
+  if (!feedFabDial) return;
+  const willOpen = typeof force === 'boolean' ? force : !feedDialOpen;
+  feedDialOpen = willOpen;
+  feedFabDial.classList.toggle('open', willOpen);
 }
 
 function applySearchTerm(rawValue, options = {}) {
@@ -469,6 +484,27 @@ if (feedSearchClear) {
     if (feedSearchInput) feedSearchInput.focus();
   });
 }
+if (feedMoreBtn && feedMoreWrap && feedFabDial) {
+  feedMoreBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    toggleFeedDial();
+  });
+  document.addEventListener('click', (event) => {
+    if (feedDialOpen && !feedMoreWrap.contains(event.target)) toggleFeedDial(false);
+  });
+  feedFabDial.addEventListener('click', (event) => {
+    const btn = event.target.closest('.mini-fab');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    if (action === 'go-chat' || action === 'go-feed') {
+      const href = btn.dataset.href;
+      if (href) window.location.href = href;
+    } else if (action === 'toggle-language') {
+      setLang(currentLang === 'ko' ? 'en' : 'ko');
+    }
+    toggleFeedDial(false);
+  });
+}
 if (feedScrollTopBtn && feedList) {
   feedScrollTopBtn.addEventListener('click', () => {
     feedList.scrollTo({ top: 0, behavior: 'smooth' });
@@ -495,6 +531,7 @@ window.addEventListener('kaief:lang', (ev) => {
   updateSearchUI();
   if (feedLoaded) renderFeed();
   else { feedMessage.textContent = ''; feedFootnote.textContent = ''; }
+  toggleFeedDial(false);
   updateFloatingHeight();
 });
 

@@ -186,6 +186,16 @@ function applyI18n() {
   if (paletteBtn) paletteBtn.setAttribute('aria-label', t.paletteAria);
   const themeToggle = document.getElementById('themeToggle');
   if (themeToggle) themeToggle.setAttribute('aria-label', t.themeAria);
+  const moreBtn = document.getElementById('moreBtn');
+  if (moreBtn) {
+    moreBtn.setAttribute('aria-label', t.moreAria);
+    moreBtn.setAttribute('title', t.moreAria);
+  }
+  const feedMoreBtn = document.getElementById('feedMoreBtn');
+  if (feedMoreBtn) {
+    feedMoreBtn.setAttribute('aria-label', t.moreAria);
+    feedMoreBtn.setAttribute('title', t.moreAria);
+  }
   const chatFab = document.querySelector('.mini-fab[data-action="go-chat"]');
   if (chatFab) {
     chatFab.setAttribute('aria-label', t.fabChatAria || t.navChat);
