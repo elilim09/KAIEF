@@ -7,11 +7,22 @@ const feedFootnote = document.getElementById('feedFootnote');
 const feedFiltersEl = document.getElementById('feedFilters');
 const feedSortLabelEl = document.querySelector('.feed-sort-label');
 const feedSortSelect = document.getElementById('feedSort');
+const feedSearchForm = document.getElementById('feedSearchForm');
+const feedSearchInput = document.getElementById('feedSearch');
+const feedSearchClear = document.getElementById('feedSearchClear');
+const feedSearchSubmit = document.getElementById('feedSearchSubmit');
+const feedScrollTopBtn = document.getElementById('feedScrollTop');
+const feedFilterEl = document.querySelector('.feed-filter');
+const feedFloating = document.getElementById('feedFloating');
+const root = document.documentElement;
 
 let feedLoaded = false;
 let cachedEvents = [];
 let activeFeedFilter = 'all';
 let activeSort = feedSortSelect?.value || 'recent';
+let activeSearchTerm = '';
+let activeSearchTermRaw = '';
+let lastFeedScrollTop = 0;
 
 initCommonUI({ page: 'feed' });
 
@@ -23,6 +34,98 @@ const feedFilterOptions = [
   { id: 'gugak', label: { ko: '국립국악원', en: 'National Gugak Center' }, match: ['국립국악원'] },
   { id: 'folk', label: { ko: '국립민속박물관', en: 'National Folk Museum' }, match: ['국립민속박물관'] }
 ];
+
+function updateFloatingHeight() {
+  if (!feedFloating || !root) return;
+  const height = feedFloating.getBoundingClientRect().height || 0;
+  if (height > 0) {
+    root.style.setProperty('--feed-floating-height', `${Math.ceil(height)}px`);
+  }
+}
+
+function updateSearchLocalization() {
+  const t = translations[currentLang];
+  if (feedSearchInput) {
+    feedSearchInput.placeholder = t.feedSearchPlaceholder || feedSearchInput.placeholder;
+    feedSearchInput.setAttribute('aria-label', t.feedSearchAria || t.feedSearchPlaceholder || '');
+    feedSearchInput.value = activeSearchTermRaw;
+  }
+  if (feedSearchClear) feedSearchClear.setAttribute('aria-label', t.feedSearchClear || '');
+  if (feedSearchSubmit) feedSearchSubmit.setAttribute('aria-label', t.feedSearchSubmit || '');
+  if (feedScrollTopBtn) feedScrollTopBtn.setAttribute('aria-label', t.feedScrollTop || '');
+}
+
+function updateSearchUI() {
+  if (feedSearchClear) feedSearchClear.hidden = activeSearchTerm.length === 0;
+}
+
+function applySearchTerm(rawValue, options = {}) {
+  const value = typeof rawValue === 'string' ? rawValue : '';
+  activeSearchTermRaw = value.trim();
+  const normalized = activeSearchTermRaw.toLowerCase();
+  if (normalized === activeSearchTerm) {
+    updateSearchUI();
+    if (feedSearchInput && feedSearchInput.value !== activeSearchTermRaw) feedSearchInput.value = activeSearchTermRaw;
+    if (options.forceRender) renderFeed();
+    if (!options.skipScroll && feedList) {
+      feedList.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    return;
+  }
+  activeSearchTerm = normalized;
+  updateSearchUI();
+  renderFeed();
+  if (!options.skipScroll && feedList) {
+    feedList.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function filterEventsBySearchTerm(events) {
+  if (!activeSearchTerm) return events.slice();
+  const term = activeSearchTerm;
+  return events.filter((ev) => {
+    const haystack = [
+      ev?.title,
+      ev?.description,
+      ev?.deep_data,
+      ev?.overview,
+      ev?.host,
+      ev?.organization,
+      ev?.category,
+      ev?.place,
+      ev?.location
+    ].map((part) => String(part || '').toLowerCase()).join(' ');
+    return haystack.includes(term);
+  });
+}
+
+function toggleScrollTopButton(scrollTop) {
+  if (!feedScrollTopBtn) return;
+  const shouldShow = scrollTop > 160;
+  feedScrollTopBtn.classList.toggle('visible', shouldShow);
+}
+
+function updateFilterVisibility(scrollTop) {
+  if (!feedFilterEl) return;
+  if (scrollTop < 16) {
+    feedFilterEl.classList.remove('collapsed');
+    return;
+  }
+  if (scrollTop > lastFeedScrollTop + 6) {
+    feedFilterEl.classList.add('collapsed');
+  } else if (scrollTop < lastFeedScrollTop - 6) {
+    feedFilterEl.classList.remove('collapsed');
+  }
+}
+
+function handleFeedScroll() {
+  if (!feedList) return;
+  const scrollTop = feedList.scrollTop;
+  handleSurfaceScroll(feedList);
+  updateFilterVisibility(scrollTop);
+  toggleScrollTopButton(scrollTop);
+  lastFeedScrollTop = scrollTop;
+}
 
 /* ===== 유틸 ===== */
 function escapeHTML(str) {
@@ -259,24 +362,30 @@ function renderFeed() {
   const t = translations[currentLang];
   const filtered = filterEventsByActiveOption(cachedEvents);
   const sorted = sortEvents(filtered);
+  const searched = filterEventsBySearchTerm(sorted);
   feedList.innerHTML = '';
-  if (sorted.length === 0) {
+  if (searched.length === 0) {
+    const emptyTitle = activeSearchTerm ? (t.feedSearchEmpty || t.feedEmpty) : t.feedEmpty;
+    const emptyDesc = activeSearchTerm ? (t.feedSearchEmptyDesc || t.feedEmptyDesc) : t.feedEmptyDesc;
+    const emptyIcon = activeSearchTerm ? '🔍' : '📭';
     feedMessage.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-icon">📭</div>
-        <div class="empty-state-title">${t.feedEmpty}</div>
-        <div class="empty-state-desc">${t.feedEmptyDesc}</div>
+        <div class="empty-state-icon">${emptyIcon}</div>
+        <div class="empty-state-title">${emptyTitle}</div>
+        <div class="empty-state-desc">${emptyDesc}</div>
       </div>
     `;
-    feedFootnote.textContent = t.feedFootnote;
+    feedFootnote.textContent = activeSearchTerm ? '' : t.feedFootnote;
+    updateFloatingHeight();
     return;
   }
   feedMessage.textContent = '';
-  sorted.forEach((ev) => {
+  searched.forEach((ev) => {
     const card = createFeedCard(ev);
     if (card) feedList.appendChild(card);
   });
   feedFootnote.textContent = t.feedFootnote;
+  updateFloatingHeight();
 }
 
 async function ensureFeed(forceReload = false) {
@@ -304,12 +413,13 @@ async function ensureFeed(forceReload = false) {
       </div>
     `;
     feedFootnote.textContent = '';
+    updateFloatingHeight();
   }
 }
 
 /* ===== 스크롤/언어 이벤트 ===== */
 if (feedList) {
-  feedList.addEventListener('scroll', () => handleSurfaceScroll(feedList));
+  feedList.addEventListener('scroll', handleFeedScroll);
 }
 if (feedSortSelect) {
   feedSortSelect.addEventListener('change', (event) => {
@@ -317,16 +427,55 @@ if (feedSortSelect) {
     renderFeed();
   });
 }
+if (feedSearchForm && feedSearchInput) {
+  feedSearchForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    applySearchTerm(feedSearchInput.value, { skipScroll: false, forceRender: true });
+  });
+}
+if (feedSearchInput) {
+  feedSearchInput.addEventListener('input', (event) => {
+    applySearchTerm(event.target.value, { skipScroll: true });
+  });
+}
+if (feedSearchClear) {
+  feedSearchClear.addEventListener('click', () => {
+    applySearchTerm('', { skipScroll: false, forceRender: true });
+    if (feedSearchInput) feedSearchInput.focus();
+  });
+}
+if (feedScrollTopBtn && feedList) {
+  feedScrollTopBtn.addEventListener('click', () => {
+    feedList.scrollTo({ top: 0, behavior: 'smooth' });
+    if (feedFilterEl) feedFilterEl.classList.remove('collapsed');
+  });
+}
+if (feedFloating) {
+  updateFloatingHeight();
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(updateFloatingHeight);
+    ro.observe(feedFloating);
+  }
+  window.addEventListener('resize', updateFloatingHeight);
+}
+
+updateSearchLocalization();
+updateSearchUI();
+toggleScrollTopButton(feedList?.scrollTop || 0);
 window.addEventListener('kaief:lang', (ev) => {
   currentLang = ev.detail?.lang || currentLang;
   renderFeedFilters();
   renderSortControl();
+  updateSearchLocalization();
+  updateSearchUI();
   if (feedLoaded) renderFeed();
   else { feedMessage.textContent = ''; feedFootnote.textContent = ''; }
+  updateFloatingHeight();
 });
 
 /* 초기화 */
 renderFeedFilters();
 renderSortControl();
 ensureFeed(false);
-handleSurfaceScroll(feedList);
+handleFeedScroll();
+updateFloatingHeight();
