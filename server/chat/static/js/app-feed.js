@@ -5,10 +5,13 @@ const feedList = document.getElementById('feedList');
 const feedMessage = document.getElementById('feedMessage');
 const feedFootnote = document.getElementById('feedFootnote');
 const feedFiltersEl = document.getElementById('feedFilters');
+const feedSortLabelEl = document.querySelector('.feed-sort-label');
+const feedSortSelect = document.getElementById('feedSort');
 
 let feedLoaded = false;
 let cachedEvents = [];
 let activeFeedFilter = 'all';
+let activeSort = feedSortSelect?.value || 'recent';
 
 initCommonUI({ page: 'feed' });
 
@@ -115,6 +118,100 @@ function createFeedCard(ev) {
   return card;
 }
 
+function parseEventDateValue(value) {
+  if (!value) return null;
+  const str = String(value).trim();
+  if (!str) return null;
+  const normalized = str
+    .replace(/[년]/g, '.')
+    .replace(/[월]/g, '.')
+    .replace(/[일]/g, '.')
+    .replace(/[~]/g, ' ')
+    .replace(/[^0-9.\-/ ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const fullMatch = normalized.match(/(\d{4})[.\-/ ](\d{1,2})[.\-/ ](\d{1,2})/);
+  if (fullMatch) {
+    const [, y, m, d] = fullMatch;
+    const year = Number(y);
+    const month = Number(m);
+    const day = Number(d);
+    if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+      return new Date(year, month - 1, day);
+    }
+  }
+  const compactMatch = normalized.match(/(\d{4})(\d{2})(\d{2})/);
+  if (compactMatch) {
+    const [, y, m, d] = compactMatch;
+    const year = Number(y);
+    const month = Number(m);
+    const day = Number(d);
+    if (!Number.isNaN(year) && !Number.isNaN(month) && !Number.isNaN(day)) {
+      return new Date(year, month - 1, day);
+    }
+  }
+  const fallback = normalized.match(/(\d{1,2})[.\-/ ](\d{1,2})/);
+  if (fallback) {
+    const [, m, d] = fallback;
+    const month = Number(m);
+    const day = Number(d);
+    if (!Number.isNaN(month) && !Number.isNaN(day)) {
+      const referenceYear = new Date().getFullYear();
+      return new Date(referenceYear, month - 1, day);
+    }
+  }
+  return null;
+}
+
+function getEventSortDate(ev) {
+  if (!ev) return null;
+  const candidates = [
+    ev.datetime,
+    ev.period,
+    ev.date,
+    ev.start_date,
+    ev.startDate,
+    ev.begin,
+    ev.created_at,
+    ev.createdAt,
+    ev.updated_at,
+    ev.updatedAt
+  ];
+  for (const candidate of candidates) {
+    const parsed = parseEventDateValue(candidate);
+    if (parsed) return parsed;
+  }
+  return null;
+}
+
+function alphabeticalSort(a, b, locale) {
+  const hostA = String(a.host || a.organization || '');
+  const hostB = String(b.host || b.organization || '');
+  const titleA = String(a.title || '');
+  const titleB = String(b.title || '');
+  const hostCompare = hostA.localeCompare(hostB, locale, { sensitivity: 'base' });
+  if (hostCompare !== 0) return hostCompare;
+  return titleA.localeCompare(titleB, locale, { sensitivity: 'base' });
+}
+
+function sortEvents(events) {
+  const locale = currentLang === 'ko' ? 'ko' : 'en';
+  const list = events.slice();
+  if (activeSort === 'recent') {
+    list.sort((a, b) => {
+      const dateA = getEventSortDate(a);
+      const dateB = getEventSortDate(b);
+      if (dateA && dateB) return dateB - dateA;
+      if (dateA) return -1;
+      if (dateB) return 1;
+      return alphabeticalSort(a, b, locale);
+    });
+    return list;
+  }
+  list.sort((a, b) => alphabeticalSort(a, b, locale));
+  return list;
+}
+
 /* ===== 필터/정렬 ===== */
 function filterEventsByActiveOption(events) {
   const option = feedFilterOptions.find((opt) => opt.id === activeFeedFilter);
@@ -144,13 +241,26 @@ function renderFeedFilters() {
   });
 }
 
+function renderSortControl() {
+  if (!feedSortSelect) return;
+  const t = translations[currentLang];
+  if (feedSortLabelEl) feedSortLabelEl.textContent = t.feedSortLabel;
+  feedSortSelect.setAttribute('aria-label', t.feedSortAria || t.feedSortLabel);
+  const optionRecent = feedSortSelect.querySelector('option[value="recent"]');
+  if (optionRecent) optionRecent.textContent = t.feedSortRecent;
+  const optionTitle = feedSortSelect.querySelector('option[value="title"]');
+  if (optionTitle) optionTitle.textContent = t.feedSortTitle;
+  feedSortSelect.value = activeSort;
+}
+
 /* ===== 렌더링/로드 ===== */
 function renderFeed() {
   if (!feedLoaded) return;
   const t = translations[currentLang];
   const filtered = filterEventsByActiveOption(cachedEvents);
+  const sorted = sortEvents(filtered);
   feedList.innerHTML = '';
-  if (filtered.length === 0) {
+  if (sorted.length === 0) {
     feedMessage.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">📭</div>
@@ -162,16 +272,6 @@ function renderFeed() {
     return;
   }
   feedMessage.textContent = '';
-  const locale = currentLang === 'ko' ? 'ko' : 'en';
-  const sorted = filtered.slice().sort((a, b) => {
-    const hostA = String(a.host || a.organization || '');
-    const hostB = String(b.host || b.organization || '');
-    const titleA = String(a.title || '');
-    const titleB = String(b.title || '');
-    const hostCompare = hostA.localeCompare(hostB, locale, { sensitivity: 'base' });
-    if (hostCompare !== 0) return hostCompare;
-    return titleA.localeCompare(titleB, locale, { sensitivity: 'base' });
-  });
   sorted.forEach((ev) => {
     const card = createFeedCard(ev);
     if (card) feedList.appendChild(card);
@@ -208,15 +308,25 @@ async function ensureFeed(forceReload = false) {
 }
 
 /* ===== 스크롤/언어 이벤트 ===== */
-feedList.addEventListener('scroll', () => handleSurfaceScroll(feedList));
+if (feedList) {
+  feedList.addEventListener('scroll', () => handleSurfaceScroll(feedList));
+}
+if (feedSortSelect) {
+  feedSortSelect.addEventListener('change', (event) => {
+    activeSort = event.target.value || 'recent';
+    renderFeed();
+  });
+}
 window.addEventListener('kaief:lang', (ev) => {
   currentLang = ev.detail?.lang || currentLang;
   renderFeedFilters();
+  renderSortControl();
   if (feedLoaded) renderFeed();
   else { feedMessage.textContent = ''; feedFootnote.textContent = ''; }
 });
 
 /* 초기화 */
 renderFeedFilters();
+renderSortControl();
 ensureFeed(false);
 handleSurfaceScroll(feedList);
