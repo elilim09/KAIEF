@@ -14,7 +14,7 @@ const root = document.documentElement;
 const introBadge = document.getElementById('introBadge');
 const introText = document.getElementById('introText');
 const introHint = document.getElementById('introHint');
-
+let chatHistory = [];
 let typingEl = null;
 let lastScrollTop = 0;
 
@@ -117,11 +117,6 @@ function renderEventCard(ev, options = {}) {
       ${link ? `<div class="mt-3 text-sm font-semibold">${link}</div>` : ''}
     </div>
   `;
-}
-function renderKeywords(kw = []) {
-  if (!Array.isArray(kw) || kw.length === 0) return '';
-  const pills = kw.slice(0, 8).map((k) => `<span class="px-2 py-1 rounded-full border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container)] text-xs">${escapeHTML(k)}</span>`).join(' ');
-  return `<div class="mt-2 flex flex-wrap gap-1 items-center">${pills}</div>`;
 }
 
 /* ===== 채팅 UI ===== */
@@ -227,35 +222,63 @@ function updateIntroSection() {
 /* ===== 메시지 송수신 ===== */
 function buildAssistantResponse(payload) {
   const t = translations[currentLang];
-  const keywords = Array.isArray(payload.keywords) ? payload.keywords : [];
+  let html = assistantHeaderHTML();
+
+  // reason
   const reasonData = payload.reason;
   const reasonText = typeof reasonData === 'string'
     ? reasonData
     : (reasonData?.[currentLang] || reasonData?.ko || '');
-  let html = assistantHeaderHTML();
-  if (keywords.length) {
-    html += `<div class="text-sm opacity-70 mb-1">${t.keywordTitle}</div>${renderKeywords(keywords)}`;
-  }
   if (reasonText) html += `<div class="mt-3 text-sm leading-6">${formatMultiline(reasonText)}</div>`;
-  html += renderEventCard(payload.recommended_event || {}, { showLink: true });
+
+  // recommended_event 처리
+  const events = Array.isArray(payload.recommended_event)
+    ? payload.recommended_event
+    : [payload.recommended_event || {}];
+
+  events.forEach(ev => {
+    html += renderEventCard(ev, { showLink: true });
+  });
+
   return html;
 }
+
 async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
   addBubble('user', escapeHTML(text));
+
+  // 대화 기록에 유저 메시지 추가
+  chatHistory.push({ role: 'user', content: text });
+
   input.value = '';
   updateSend(); updateCharCounter(); showTyping();
+
   try {
-    const res = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }) });
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: text,
+        chat_history: chatHistory,
+      })
+    });
+
+
     const data = await res.json();
     hideTyping();
+
     const rawResponse = data?.response;
     let responsePayload = {};
-    if (rawResponse && typeof rawResponse === 'object') responsePayload = rawResponse;
-    else if (typeof rawResponse === 'string') responsePayload = { reason: { ko: rawResponse, en: rawResponse }, recommended_event: {} };
+    if (typeof rawResponse === 'object') responsePayload = rawResponse;
+    else responsePayload = { reason: { ko: rawResponse, en: rawResponse }, recommended_event: {} };
+
+    // ✅ Assistant의 답변도 기록에 추가
+    chatHistory.push({ role: 'assistant', content: rawResponse });
+
     const html = buildAssistantResponse(responsePayload);
     addBubble('assistant', html);
+
   } catch (err) {
     hideTyping();
     const t = translations[currentLang];
@@ -263,7 +286,6 @@ async function sendMessage() {
       ${assistantHeaderHTML()}
       <div class="text-sm">${t.errorMessage}</div>
       <div class="mt-2 text-xs opacity-70">${escapeHTML(String(err))}</div>
-      <button class="retry-button" onclick="document.getElementById('input').value='${escapeHTML(text)}'; document.getElementById('send').click();">${t.errorRetry}</button>
     `);
   }
 }
