@@ -143,7 +143,7 @@ body {
 .view.active { display:flex; }
 
 .chat { height: var(--view-height); display:flex; flex-direction:column; background: var(--md-sys-color-surface); position: relative; }
-.chat-list { flex:1; padding: 14px 20px 80px; overflow-y:auto; scroll-behavior:smooth; }
+.chat-list { flex:1; padding: 14px 20px 80px; overflow-y:auto; scroll-behavior:smooth; display: flex; flex-direction: column;}
 .chat-list::-webkit-scrollbar{ width:6px; } .chat-list::-webkit-scrollbar-thumb{ background: var(--md-sys-color-outline); border-radius:3px; }
 
 .bubble{ max-width:82%; line-height:1.55; font-size:15px; padding:14px 16px; border-radius: var(--shape-corner-xl); position:relative; animation: slideUp var(--dur-standard) var(--easing-emphasized); }
