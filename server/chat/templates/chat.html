@@ -121,5 +121,25 @@
 
   <script type="module" src="{{ url_for('static', path='js/app-common.js') }}"></script>
   <script type="module" src="{{ url_for('static', path='js/app-chat.js') }}"></script>
+  <script>
+    (function updateDynamicViewHeight() {
+      const root = document.documentElement;
+      const appBar = document.getElementById('appBar');
+      if (!root || !appBar) return;
+
+      const refresh = () => {
+        const headerHeight = appBar.getBoundingClientRect().height || 0;
+        root.style.setProperty('--view-height', `calc(100dvh - ${headerHeight}px)`);
+      };
+
+      if (typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(refresh);
+        ro.observe(appBar);
+      }
+
+      window.addEventListener('resize', refresh);
+      refresh();
+    })();
+  </script>
 </body>
 </html>

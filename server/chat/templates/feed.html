@@ -10,6 +10,30 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght,GRAD,slnt,YOPQ@8..144,300..900,-200..150,-12..0,25..135&family=Noto+Sans+KR:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}" />
+  <style>
+    .feed-sort {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .feed-sort-label {
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0.7;
+    }
+    .feed-sort-select {
+      border: 1px solid var(--md-sys-color-outline-variant);
+      background: var(--md-sys-color-surface-container-low);
+      border-radius: var(--shape-corner-full);
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--md-sys-color-on-surface);
+      cursor: pointer;
+      min-width: 120px;
+    }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -68,6 +92,8 @@
       <div class="feed-filter">
         <span class="feed-filter-label" data-i18n="feedFilterLabel">주요 기관 바로보기</span>
         <div class="feed-filter-chips" id="feedFilters"></div>
+        <div class="feed-sort">
+        </div>
       </div>
       <div id="feedMessage" class="feed-message" aria-live="polite"></div>
       <div id="feedList" class="feed-list" role="list"></div>
@@ -77,5 +103,25 @@
 
   <script type="module" src="{{ url_for('static', path='js/app-common.js') }}"></script>
   <script type="module" src="{{ url_for('static', path='js/app-feed.js') }}"></script>
+  <script>
+    (function updateDynamicViewHeight() {
+      const root = document.documentElement;
+      const appBar = document.getElementById('appBar');
+      if (!root || !appBar) return;
+
+      const refresh = () => {
+        const headerHeight = appBar.getBoundingClientRect().height || 0;
+        root.style.setProperty('--view-height', `calc(100dvh - ${headerHeight}px)`);
+      };
+
+      if (typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(refresh);
+        ro.observe(appBar);
+      }
+
+      window.addEventListener('resize', refresh);
+      refresh();
+    })();
+  </script>
 </body>
 </html>
