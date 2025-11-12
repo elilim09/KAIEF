@@ -174,21 +174,29 @@ function formatCost(value, lang) {
 function extractEvent(ev, lang, options = {}) {
   if (!ev || typeof ev !== 'object') return null;
   const t = translations[lang];
-  
+
   const title = lang === 'en' ? (ev.title_en ?? ev.title) : ev.title;
   const place = lang === 'en' ? (ev.place_en ?? ev.place) : ev.place;
-  const host = lang === 'en' ? (ev.host_en ?? ev.host) : ev.host;
-  const schedule = lang === 'en' ? (ev.period_en ?? ev.period) : ev.period;
+  const host = lang === 'en' 
+    ? (ev.host_en ?? ev.host ?? ev.organization ?? '') 
+    : (ev.host ?? ev.organization ?? '');
 
-  // 상태 번역
+  // 날짜 처리: period → date fallback
+  const schedule = lang === 'en' 
+    ? (ev.period_en ?? ev.period ?? ev.date ?? '알수없음')
+    : (ev.period ?? ev.date ?? '알수없음');
+
+  // 상태 처리
   let status = ev.state || ev.status || '';
   if (lang === 'en') {
-    // 한국어 상태를 영어로 매핑
     if (status === "진행중") status = t.state.ongoing;
     else if (status === "종료") status = t.state.finished;
-    else if (status === "예정") status = t.state.upcoming;
+    else if (status === "예정" || status === "진행예정") status = t.state.upcoming;
     else status = t.state.unknown;
   }
+
+  // 링크 처리
+  const link = ev.url ?? ev.link ?? '';
 
   return {
     title: escapeValue(title, t.unknownTitle),
@@ -197,7 +205,7 @@ function extractEvent(ev, lang, options = {}) {
     host: escapeValue(host),
     status: escapeValue(status),
     cost: formatCost(ev.cost, lang),
-    link: escapeValue(ev.url || '')
+    link: escapeValue(link)
   };
 }
 

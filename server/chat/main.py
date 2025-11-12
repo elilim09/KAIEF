@@ -135,7 +135,7 @@ async def chatbot(message: str, chat_history: list = None, session_id: str = Non
             "place": e.get("place"),
             "host": e.get("host"),
             "state": e.get("state"),
-            "url": e.get("url"),
+            "url": e.get("url") or e.get("link") or "#",
         }
         for e in events_data
     ]
@@ -295,8 +295,9 @@ async def api_chat(request: Request):
     return await chatbot(raw_message, chat_history)
 
 
-@app.get("/api/events")
+@app.get("/events")
 async def api_events():
+    print(events_data[1])
     return {"events": events_data}
 
 
