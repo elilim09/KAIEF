@@ -1,7 +1,8 @@
 # main.py
 import json
 import os
-from typing import List, Tuple, Optional
+import re
+from typing import List, Tuple, Optional, Dict, Any
 import asyncio
 import aiofiles
 from fastapi import FastAPI, Request
@@ -46,6 +47,252 @@ openai_client: Optional[AsyncOpenAI] = AsyncOpenAI(api_key=OPENAI_API_KEY) if OP
 # =========================
 events_data: List[dict] = []
 
+
+INTENT_RESPONSES: Dict[str, Dict[str, str]] = {
+    "greeting": {
+        "ko": "안녕하세요! 관심 있는 행사나 조건을 알려주시면 도와드릴게요.",
+        "en": "Hello! Let me know what kind of event or activity you're interested in."
+    },
+    "gratitude": {
+        "ko": "도움이 되었다니 기쁘네요. 다른 행사도 궁금하시면 언제든 말씀해주세요!",
+        "en": "I'm glad I could help. Feel free to ask for more event suggestions!"
+    },
+    "goodbye": {
+        "ko": "다음에도 필요하시면 언제든 찾아주세요.",
+        "en": "Come back anytime if you need more ideas!"
+    },
+    "smalltalk": {
+        "ko": "행사나 활동을 찾고 계시다면 관심사나 지역을 알려주세요.",
+        "en": "If you're looking for an event, share your interests or location and I'll help."
+    },
+    "help": {
+        "ko": "사용 방법이 궁금하시다면, 찾고 싶은 행사나 조건을 구체적으로 말씀해 주세요.",
+        "en": "To help you better, let me know the type of event or requirements you have in mind."
+    },
+    "complaint": {
+        "ko": "불편을 드려 죄송합니다. 어떤 점을 개선하면 좋을지 알려주시면 반영하겠습니다.",
+        "en": "I'm sorry for the inconvenience. Let me know what should be improved and I'll pass it along."
+    },
+    "other": {
+        "ko": "문화/교육 행사를 찾을 수 있도록 도와드리고 있어요. 원하시는 내용을 말해 주세요.",
+        "en": "I'm here to help you discover cultural and educational events. Tell me what you're looking for."
+    },
+}
+
+CLARIFICATION_RESPONSE = {
+    "ko": "관심 있는 행사 유형이나 지역을 조금 더 자세히 알려주시면 추천에 도움이 됩니다.",
+    "en": "Could you share more details about the type of event or location you're interested in?"
+}
+
+EMPTY_INPUT_RESPONSE = {
+    "ko": "메시지를 입력해주세요.",
+    "en": "Please enter a message to begin."
+}
+
+
+def detect_language(text: str) -> str:
+    """간단한 언어 감지 (한글 vs 영어)"""
+    if not text:
+        return "ko"
+    hangul_count = len(re.findall(r"[가-힣]", text))
+    latin_count = len(re.findall(r"[A-Za-z]", text))
+    if hangul_count == latin_count == 0:
+        return "ko"
+    if hangul_count >= latin_count:
+        return "ko"
+    return "en"
+
+
+def _tokenize(text: str) -> List[str]:
+    return re.findall(r"[\w가-힣]+", text.lower())
+
+
+def ensure_reason_language(reason: Any, language: str):
+    if isinstance(reason, dict):
+        if language == "en":
+            return reason.get("en") or reason.get("ko") or ""
+        return reason
+    if isinstance(reason, str):
+        if language == "en":
+            return reason
+        return {"ko": reason, "en": reason}
+    return reason
+
+
+def heuristic_intent_analysis(raw_message: str, detected_language: str) -> Dict[str, Any]:
+    result: Dict[str, Any] = {
+        "language": detected_language,
+        "intent": "event_inquiry",
+        "needs_event_search": True,
+        "keywords": [],
+        "clarification_needed": False,
+    }
+
+    if not raw_message:
+        result.update({
+            "intent": "empty",
+            "needs_event_search": False
+        })
+        return result
+
+    text = raw_message.strip()
+    lower = text.lower()
+    tokens = _tokenize(text)
+
+    greeting_ko = ["안녕", "안녕하세요", "하이", "ㅎㅇ"]
+    greeting_en = ["hello", "hi", "hey"]
+    gratitude_ko = ["고마워", "감사", "수고"]
+    gratitude_en = ["thank", "thanks", "appreciate"]
+    goodbye_ko = ["잘 가", "안녕히", "다음에", "또 봐"]
+    goodbye_en = ["bye", "goodbye", "see you"]
+    help_ko = ["사용", "방법", "도와", "어떻게", "쓰는"]
+    help_en = ["how to", "help", "use", "instructions"]
+    smalltalk_ko = ["날씨", "기분", "심심", "어때", "뭐 해"]
+    smalltalk_en = ["weather", "how are you", "what's up", "bored"]
+    complaint_ko = ["불만", "불편", "문제", "안 돼", "안돼", "고장"]
+    complaint_en = ["not working", "problem", "issue", "doesn't", "broken"]
+
+    def contains_any(source: str, keywords: List[str]) -> bool:
+        return any(keyword in source for keyword in keywords)
+
+    if detected_language == "ko":
+        if contains_any(text, greeting_ko):
+            result.update({"intent": "greeting", "needs_event_search": False})
+            return result
+        if contains_any(text, gratitude_ko):
+            result.update({"intent": "gratitude", "needs_event_search": False})
+            return result
+        if contains_any(text, goodbye_ko):
+            result.update({"intent": "goodbye", "needs_event_search": False})
+            return result
+        if contains_any(text, help_ko):
+            result.update({"intent": "help", "needs_event_search": False})
+            return result
+        if contains_any(text, smalltalk_ko):
+            result.update({"intent": "smalltalk", "needs_event_search": False})
+            return result
+        if contains_any(text, complaint_ko):
+            result.update({"intent": "complaint", "needs_event_search": False})
+            return result
+    else:
+        if contains_any(lower, greeting_en):
+            result.update({"intent": "greeting", "needs_event_search": False})
+            return result
+        if contains_any(lower, gratitude_en):
+            result.update({"intent": "gratitude", "needs_event_search": False})
+            return result
+        if contains_any(lower, goodbye_en):
+            result.update({"intent": "goodbye", "needs_event_search": False})
+            return result
+        if contains_any(lower, help_en):
+            result.update({"intent": "help", "needs_event_search": False})
+            return result
+        if contains_any(lower, smalltalk_en):
+            result.update({"intent": "smalltalk", "needs_event_search": False})
+            return result
+        if contains_any(lower, complaint_en):
+            result.update({"intent": "complaint", "needs_event_search": False})
+            return result
+
+    event_keywords_ko = ["행사", "축제", "체험", "교육", "강연", "전시", "공연", "대회", "캠프", "프로그램", "강좌"]
+    event_keywords_en = ["event", "events", "festival", "workshop", "class", "lecture", "seminar", "competition", "contest", "program", "activity", "performance", "show", "exhibition", "camp"]
+
+    event_request = False
+    if detected_language == "ko":
+        if contains_any(text, event_keywords_ko):
+            event_request = True
+        elif "추천" in text and contains_any(text, ["곳", "장소", "무엇", "뭐", "거"]):
+            event_request = True
+    else:
+        if contains_any(lower, event_keywords_en):
+            event_request = True
+        elif "recommend" in lower and ("event" in lower or "activity" in lower or "place" in lower):
+            event_request = True
+
+    if not event_request:
+        result.update({"intent": "other", "needs_event_search": False})
+        return result
+
+    stopwords_common = {"추천", "행사", "알려줘", "찾아줘", "있어", "좀", "뭐", "무엇", "있나요", "event", "events", "recommend", "please", "anything", "something", "show"}
+    meaningful_tokens = [token for token in tokens if token not in stopwords_common and len(token) >= 2]
+
+    if len(meaningful_tokens) <= 1:
+        result["clarification_needed"] = True
+        result["needs_event_search"] = False
+    else:
+        result["keywords"] = meaningful_tokens[:6]
+
+    return result
+
+
+async def analyze_user_message(raw_message: str) -> Dict[str, Any]:
+    detected_language = detect_language(raw_message)
+    heuristic_result = heuristic_intent_analysis(raw_message, detected_language)
+
+    if not raw_message or not openai_client:
+        return heuristic_result
+
+    system_prompt = """
+You evaluate a single user utterance for a cultural event recommendation assistant.
+Return a compact JSON object with:
+- language: "ko" or "en" (dominant language of the message).
+- intent: one of ["event_inquiry","greeting","gratitude","goodbye","smalltalk","help","complaint","other"].
+- needs_event_search: boolean, true only if the assistant should search event data right away.
+- keywords: 0-7 concise search keywords (strings) when needs_event_search is true.
+- clarification_needed: boolean, true when the assistant must ask for more details before searching events.
+
+Focus on the user's intent and implied constraints rather than extracting random keywords.
+If the message is a greeting, thanks, chit-chat, or a question about how to use the service, set needs_event_search to false.
+If the request is too vague to search (e.g., lacks topic, audience, or location), set clarification_needed to true.
+"""
+
+    try:
+        resp = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": json.dumps({"message": raw_message}, ensure_ascii=False)}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0,
+        )
+        parsed = json.loads(resp.choices[0].message.content)
+    except Exception as exc:
+        print(f"Error analyzing message with OpenAI: {exc}")
+        return heuristic_result
+
+    analysis = heuristic_result.copy()
+
+    language = parsed.get("language")
+    if isinstance(language, str):
+        language = language.lower()
+        if language in {"ko", "en"}:
+            analysis["language"] = language
+
+    intent = parsed.get("intent")
+    if isinstance(intent, str):
+        analysis["intent"] = intent
+
+    needs_event = parsed.get("needs_event_search")
+    if isinstance(needs_event, bool):
+        analysis["needs_event_search"] = needs_event
+
+    clarification_needed = parsed.get("clarification_needed")
+    if isinstance(clarification_needed, bool):
+        analysis["clarification_needed"] = clarification_needed
+        if clarification_needed:
+            analysis["needs_event_search"] = False
+
+    keywords = parsed.get("keywords")
+    if isinstance(keywords, list):
+        cleaned: List[str] = []
+        for kw in keywords:
+            if isinstance(kw, str) and kw.strip():
+                cleaned.append(kw.strip())
+        if cleaned:
+            analysis["keywords"] = cleaned[:7]
+
+    return analysis
 
 def compute_event_state(period: str) -> str:
     """
@@ -341,20 +588,50 @@ def score_event(event: dict, keywords: List[str]) -> int:
 async def handle_chat_logic(raw_message: str) -> dict:
     """채팅 API 공용 로직"""
     if not raw_message:
+        language = "ko"
         return {
             "response": {
+                "language": language,
                 "keywords": [],
                 "recommended_event": {},
-                "reason": {
-                    "ko": "메시지를 입력해주세요.",
-                    "en": "Please enter a message to begin."
-                }
+                "reason": ensure_reason_language(EMPTY_INPUT_RESPONSE, language),
             }
         }
 
     try:
-        keywords = await extract_keywords_with_openai(raw_message)
-        # 매칭
+        analysis = await analyze_user_message(raw_message)
+        language = analysis.get("language") or detect_language(raw_message)
+        intent = analysis.get("intent", "event_inquiry")
+        keywords = analysis.get("keywords") or []
+        needs_event_search = analysis.get("needs_event_search", True)
+        clarification_needed = analysis.get("clarification_needed", False)
+
+        if clarification_needed:
+            reason_payload = ensure_reason_language(CLARIFICATION_RESPONSE, language)
+            return {
+                "response": {
+                    "language": language,
+                    "keywords": keywords,
+                    "recommended_event": {},
+                    "reason": reason_payload,
+                }
+            }
+
+        if not needs_event_search:
+            bundle = INTENT_RESPONSES.get(intent, INTENT_RESPONSES["other"])
+            reason_payload = ensure_reason_language(bundle, language)
+            return {
+                "response": {
+                    "language": language,
+                    "keywords": keywords,
+                    "recommended_event": {},
+                    "reason": reason_payload,
+                }
+            }
+
+        if not keywords:
+            keywords = await extract_keywords_with_openai(raw_message)
+
         matching: List[Tuple[dict, int]] = []
         for ev in events_data:
             s = score_event(ev, keywords)
@@ -362,32 +639,40 @@ async def handle_chat_logic(raw_message: str) -> dict:
                 matching.append((ev, s))
 
         if not matching:
+            reason = build_reason(None, keywords)
+            reason_payload = ensure_reason_language(reason, language)
             return {
                 "response": {
+                    "language": language,
                     "keywords": keywords,
                     "recommended_event": {},
-                    "reason": build_reason(None, keywords),
+                    "reason": reason_payload,
                 }
             }
 
         best_event, _ = max(matching, key=lambda x: x[1])
+        reason = build_reason(best_event, keywords)
+        reason_payload = ensure_reason_language(reason, language)
         return {
             "response": {
+                "language": language,
                 "keywords": keywords,
                 "recommended_event": best_event,
-                "reason": build_reason(best_event, keywords),
+                "reason": reason_payload,
             }
         }
     except Exception as e:
-        # 에러 시에도 일관된 JSON 반환
+        language = detect_language(raw_message)
+        error_reason = {
+            "ko": f"오류가 발생했습니다: {str(e)}",
+            "en": f"An error occurred: {str(e)}"
+        }
         return {
             "response": {
+                "language": language,
                 "keywords": [],
                 "recommended_event": {},
-                "reason": {
-                    "ko": f"오류가 발생했습니다: {str(e)}",
-                    "en": f"An error occurred: {str(e)}"
-                }
+                "reason": ensure_reason_language(error_reason, language),
             }
         }
 
