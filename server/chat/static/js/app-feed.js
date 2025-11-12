@@ -28,14 +28,16 @@ initCommonUI({ page: 'feed' });
 initFabDial();
 translations.ko.state = {
   ongoing: "진행중",
-  finished: "마감",
+  finished: "종료",
   upcoming: "예정",
+  unknown: "알수없음"
 };
 
 translations.en.state = {
   ongoing: "Ongoing",
   finished: "Finished",
   upcoming: "Upcoming",
+  unknown: "Unknown"
 };
 
 const feedFilterOptions = [
@@ -183,8 +185,9 @@ function extractEvent(ev, lang, options = {}) {
   if (lang === 'en') {
     // 한국어 상태를 영어로 매핑
     if (status === "진행중") status = t.state.ongoing;
-    else if (status === "마감") status = t.state.finished;
+    else if (status === "종료") status = t.state.finished;
     else if (status === "예정") status = t.state.upcoming;
+    else status = t.state.unknown;
   }
 
   return {

@@ -78,7 +78,7 @@ def compute_event_state(period: str) -> str:
     현재 날짜 기준으로 진행중 / 종료 결정
     """
     if not period or "~" not in period:
-        return "진행중"  # 기간 정보 없으면 기본 진행중
+        return "알수없음"  # 기간 정보 없으면 기본 진행중
 
     try:
         start_str, end_str = period.split("~")
@@ -91,9 +91,9 @@ def compute_event_state(period: str) -> str:
         elif start_date <= today <= end_date:
             return "진행중"
         else:
-            return "마감"
+            return "종료"
     except Exception:
-        return "진행중"  # 파싱 오류 시 기본 진행중
+        return "알수없음"  # 파싱 오류 시 기본 진행중
 
 async def translate_event_with_openai(event: dict) -> dict:
     """행사 정보를 OpenAI를 사용해 영어로 번역"""
@@ -207,6 +207,7 @@ async def extract_keywords_with_openai(raw_message: str) -> List[str]:
     OpenAI를 사용해 정규화 키워드 추출.
     OPENAI_API_KEY 미설정 시, 간단 폴백(띄어쓰기 기반 상위 몇 개 단어) 사용.
     """
+    print("!")
     # 폴백: 키워드 간단 분리
     if not openai_client:
         words = [w.strip() for w in raw_message.split() if len(w.strip()) >= 2]
@@ -220,9 +221,10 @@ async def extract_keywords_with_openai(raw_message: str) -> List[str]:
 반드시 JSON 객체만 반환합니다.
 
 [목표]
-- 사용자의 자유로운 한국어 입력에서 검색/필터에 유용한 핵심 키워드를 3~7개 추출합니다.
-- 동의어/상위어/연령대/대상/활동유형/공간유형/비용 등으로 '정규화'된 키워드를 포함합니다.
-- '가족'이 포함되면 '초등학생','놀이','사회성','어린이' 같은 연관 키워드를 적극 확장합니다.
+- 사용자의 자유로운 질문 입력에서 검색/필터에 유용한 핵심 키워드를 3~7개 추출합니다.
+- 핵심 키워드와 관련된 세부 키워드를 약 20~30개 확장 추출하여 키워드에 추가합니다.
+- 이때, 확장 추출된 키워드는 '동의어/상위어/연령대/대상/활동유형/공간유형/비용' 등으로, '정규화'된 키워드를 포함합니다.
+- 예를 들어, '가족'이 포함되면 '초등학생','놀이','사회성','어린이'와 같은 연관 키워드를 적극 확장합니다.
 
 [출력 형식 - 반드시 준수]
 {
@@ -252,7 +254,7 @@ async def extract_keywords_with_openai(raw_message: str) -> List[str]:
             "role": "assistant",
             "content": """
 {
-  "keywords": ["주말","가족","어린이","초등학생","야외","체험","무료"],
+  "keywords": ["주말","가족","어린이","초등학생","야외","체험","무료", "청소년", "놀이", "사회성", "자연"],
   "categories": ["교육","체험"],
   "inferred": ["가족 동반","놀이","사회성"],
   "excluded": []
@@ -267,7 +269,7 @@ async def extract_keywords_with_openai(raw_message: str) -> List[str]:
             "role": "assistant",
             "content": """
 {
-  "keywords": ["고등학생","청소년","ai","대회","경진대회","분당","오프라인"],
+  "keywords": ["고등학생","청소년","ai","대회","경진대회","분당","오프라인","현장", "진학","스펙","코딩","프로그래밍"],
   "categories": ["대회","교육"],
   "inferred": ["진학/스펙","코딩"],
   "excluded": ["온라인"]
@@ -282,7 +284,7 @@ async def extract_keywords_with_openai(raw_message: str) -> List[str]:
             "role": "assistant",
             "content": """
 {
-  "keywords": ["실내","전시","미술","성인"],
+  "keywords": ["실내","전시","미술","성인", "문화", "예술", "갤러리", "박물관", "어른"],
   "categories": ["전시","문화"],
   "inferred": [],
   "excluded": ["어린이","초등학생","가족"]
@@ -297,7 +299,7 @@ async def extract_keywords_with_openai(raw_message: str) -> List[str]:
             "role": "assistant",
             "content": """
 {
-  "keywords": ["무료","강연","실내"],
+  "keywords": ["무료","강연","실내", "성인", "교육", "워크숍", "세미나", "컨퍼런스", "어른"],
   "categories": ["강연","교육"],
   "inferred": [],
   "excluded": ["야외","어린이","초등학생","가족"]
@@ -311,12 +313,12 @@ async def extract_keywords_with_openai(raw_message: str) -> List[str]:
     ]
 
     resp = await openai_client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-5-mini",
         messages=messages,
         response_format={"type": "json_object"},
-        temperature=0.2,
-        top_p=0.9,
+        temperature=1
     )
+
 
     try:
         parsed = json.loads(resp.choices[0].message.content)
@@ -329,6 +331,7 @@ async def extract_keywords_with_openai(raw_message: str) -> List[str]:
     if isinstance(candidates, str):
         candidates = [candidates]
     keywords = [k for k in candidates if isinstance(k, str) and k.strip()]
+    print(keywords)
     return keywords or ([raw_message] if raw_message else [])
 
 
@@ -552,8 +555,8 @@ def score_event(event: dict, keywords: List[str]) -> int:
         if category_text_en and k in category_text_en:
             score += 1
 
-    # state가 "마감"이면 점수 1 감소
-    if state == "마감":
+    # state가 "종료"이면 점수 1 감소
+    if state == "종료":
         score -= 1
 
     return score
@@ -589,12 +592,21 @@ async def handle_chat_logic(raw_message: str, user_id: str = "default_user") -> 
         intent_info = {"intent": "event_search", "keywords": []}
 
     intent = intent_info.get("intent", "event_search")
-
+    
     # event_search 인텐트일 때 키워드 추출
     if intent == "event_search":
+        print("@@@#")
         keywords = intent_info.get("keywords") or []
-        if not keywords:
-            keywords = await extract_keywords_with_openai(input_for_keyword)
+        print(keywords)
+        print(intent_info)
+        
+        # 항상 확장 키워드 추출
+        expanded_keywords = await extract_keywords_with_openai(input_for_keyword)
+        
+        # 기존 keywords와 합치고 중복 제거
+        keywords = list(dict.fromkeys(keywords + expanded_keywords))
+
+
 
     try:
         intent_info = await analyze_user_intent(raw_message)
@@ -657,8 +669,9 @@ async def handle_chat_logic(raw_message: str, user_id: str = "default_user") -> 
 
         state_map = {
             "진행중": "Ongoing",
-            "마감": "Ended",
-            "예정": "Upcoming"
+            "종료": "Ended",
+            "예정": "Upcoming",
+            "알수없음": "Unknown"
         }
 
         if language == "en":
@@ -679,9 +692,9 @@ async def handle_chat_logic(raw_message: str, user_id: str = "default_user") -> 
         reason = build_reason(best_event, keywords)
         reason = align_reason_language(reason, language)
 
-        # 마감 이벤트 안내 추가
-        if best_event.get("state") == "마감":
-            reason["ko"] += " 참고로, 이 행사는 이미 마감되었습니다."
+        # 종료 이벤트 안내 추가
+        if best_event.get("state") == "종료":
+            reason["ko"] += " 참고로, 이 행사는 이미 종료되었습니다."
             reason["en"] += " Note that this event has already ended."
 
         return {
