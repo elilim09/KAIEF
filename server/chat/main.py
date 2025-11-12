@@ -47,6 +47,30 @@ openai_client: Optional[AsyncOpenAI] = AsyncOpenAI(api_key=OPENAI_API_KEY) if OP
 # =========================
 events_data: List[dict] = []
 
+async def translate_en_to_ko(text: str) -> str:
+    """영문을 한국어로 번역"""
+    if not openai_client:
+        return text  # 폴백: 그대로 반환
+
+    system_prompt = "Translate the following English text into natural Korean without losing meaning."
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": text}
+    ]
+
+    try:
+        resp = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            temperature=0.1,
+            response_format={"type": "json_object"},
+        )
+        # 응답에서 번역 텍스트 추출
+        translated = resp.choices[0].message.content
+        return translated.strip()
+    except Exception:
+        return text
+
 
 def compute_event_state(period: str) -> str:
     """
@@ -474,16 +498,29 @@ def build_non_event_reason(intent: str, language: str) -> Dict[str, str]:
         return {"ko": english_text, "en": english_text}
     return reason
 
+def align_reason_language(reason: dict, language: str) -> dict:
+    """
+    사용자의 언어에 맞춰 응답(reason) 텍스트를 조정합니다.
 
-def align_reason_language(reason: Dict[str, str], language: str) -> Dict[str, str]:
-    """사용자 언어에 맞춰 응답 언어 조정"""
+    - reason: {"ko": "...", "en": "..."} 형태의 딕셔너리
+    - language: "ko" 또는 "en"
+    
+    반환: {"ko": "...", "en": "..."} 형태로 항상 딕셔너리 반환
+    """
     if not isinstance(reason, dict):
+        # 딕셔너리가 아닌 경우 그대로 반환
         return reason
-    if language == "en":
-        english_text = reason.get("en") or reason.get("ko") or ""
-        return {"ko": english_text, "en": english_text}
-    return reason
 
+    ko_text = reason.get("ko", "")
+    en_text = reason.get("en", "")
+
+    if language == "en":
+        # 영어 입력이면 영어 텍스트를 ko/en 둘 다에 넣어서 반환
+        text = en_text or ko_text
+        return {"ko": text, "en": text}
+
+    # 한국어 입력이면 원래대로 반환
+    return {"ko": ko_text, "en": en_text}
 
 def score_event(event: dict, keywords: List[str]) -> int:
     """간단한 키워드 점수 계산 (번역 필드 포함)"""
@@ -495,6 +532,7 @@ def score_event(event: dict, keywords: List[str]) -> int:
     title_en = (event.get('title_en') or '').lower()
     description_en = (event.get('description_en') or '').lower()
     category_text_en = (event.get('category_en') or '').lower()
+    state = (event.get('state') or '').lower()
 
     score = 0
     for kw in keywords:
@@ -506,18 +544,26 @@ def score_event(event: dict, keywords: List[str]) -> int:
             score += 1
         if k in category_text:
             score += 1
-        # 번역 텍스트에서 점수 계산 (가중치 동일하게 부여)
+        # 번역 텍스트에서 점수 계산 (가중치 동일)
         if title_en and k in title_en:
             score += 2
         if description_en and k in description_en:
             score += 1
         if category_text_en and k in category_text_en:
             score += 1
+
+    # state가 "마감"이면 점수 1 감소
+    if state == "마감":
+        score -= 1
+
     return score
 
 
-async def handle_chat_logic(raw_message: str) -> dict:
-    """채팅 API 공용 로직"""
+# 전역 변수: 사용자별 추천 이벤트 ID 추적
+user_recommended_events: Dict[str, set] = {}  # key: user_id/session_id, value: set of event IDs
+
+async def handle_chat_logic(raw_message: str, user_id: str = "default_user") -> dict:
+    """채팅 API 공용 로직 (중복 추천 방지 포함)"""
     if not raw_message:
         return {
             "response": {
@@ -531,6 +577,24 @@ async def handle_chat_logic(raw_message: str) -> dict:
         }
 
     language = detect_language(raw_message)
+    input_for_keyword = raw_message
+
+    # 영어 입력이면 한국어로 번역 후 키워드 추출
+    if language == "en":
+        input_for_keyword = await translate_en_to_ko(raw_message)
+
+    try:
+        intent_info = await analyze_user_intent(input_for_keyword)
+    except Exception:
+        intent_info = {"intent": "event_search", "keywords": []}
+
+    intent = intent_info.get("intent", "event_search")
+
+    # event_search 인텐트일 때 키워드 추출
+    if intent == "event_search":
+        keywords = intent_info.get("keywords") or []
+        if not keywords:
+            keywords = await extract_keywords_with_openai(input_for_keyword)
 
     try:
         intent_info = await analyze_user_intent(raw_message)
@@ -566,8 +630,11 @@ async def handle_chat_logic(raw_message: str) -> dict:
         else:
             keywords = await extract_keywords_with_openai(raw_message)
 
+        # 이미 추천된 이벤트 제외하고 점수 계산
         matching: List[Tuple[dict, int]] = []
         for ev in events_data:
+            if ev['id'] in user_recommended_events.get(user_id, set()):
+                continue  # 이미 추천된 이벤트 제외
             s = score_event(ev, keywords)
             if s > 0:
                 matching.append((ev, s))
@@ -583,10 +650,40 @@ async def handle_chat_logic(raw_message: str) -> dict:
                     "reason": reason,
                 }
             }
-
+            
+        # 최고 점수 이벤트 선택
+       
         best_event, _ = max(matching, key=lambda x: x[1])
+
+        state_map = {
+            "진행중": "Ongoing",
+            "마감": "Ended",
+            "예정": "Upcoming"
+        }
+
+        if language == "en":
+            best_event = {
+                **best_event,
+                "title": best_event.get("title_en") or best_event.get("title"),
+                "host": best_event.get("host_en") or best_event.get("host"),
+                "place": best_event.get("place_en") or best_event.get("place"),
+                "period": best_event.get("period_en") or best_event.get("period"),
+                "state": state_map.get(best_event.get("state"), best_event.get("state"))
+            }
+
+
+
+        # 추천 이벤트 기록
+        user_recommended_events.setdefault(user_id, set()).add(best_event['id'])
+
         reason = build_reason(best_event, keywords)
         reason = align_reason_language(reason, language)
+
+        # 마감 이벤트 안내 추가
+        if best_event.get("state") == "마감":
+            reason["ko"] += " 참고로, 이 행사는 이미 마감되었습니다."
+            reason["en"] += " Note that this event has already ended."
+
         return {
             "response": {
                 "intent": intent,
@@ -595,8 +692,9 @@ async def handle_chat_logic(raw_message: str) -> dict:
                 "reason": reason,
             }
         }
+
     except Exception as e:
-        # 에러 시에도 일관된 JSON 반환
+        # 에러 시 일관된 JSON 반환
         reason = {
             "ko": f"오류가 발생했습니다: {str(e)}",
             "en": f"An error occurred: {str(e)}"
