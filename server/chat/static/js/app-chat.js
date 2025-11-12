@@ -78,7 +78,6 @@ function extractEvent(ev, lang, options = {}) {
   const limit = options.descriptionLimit ?? 600;
   return {
     title: escapeValue(ev.title, t.unknownTitle),
-    category: escapeValue(ev.category),
     schedule: escapeValue(ev.period || ev.date || ev.datetime),
     location: escapeValue(ev.place || ev.location),
     host: escapeValue(ev.host || ev.organization),

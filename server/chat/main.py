@@ -112,7 +112,6 @@ async def chatbot(message: str, chat_history: list = None, session_id: str = Non
     - chat_history: 이전 대화 리스트
     - session_id: 세션별 메모리 관리용
     """
-
     if not message:
         return {"response": "메시지를 입력해주세요."}
 
@@ -136,59 +135,117 @@ async def chatbot(message: str, chat_history: list = None, session_id: str = Non
             "place": e.get("place"),
             "host": e.get("host"),
             "state": e.get("state"),
+            "url": e.get("url"),
         }
         for e in events_data
     ]
-
-    # system prompt
+    
     system_prompt = f"""
-너는 대한민국의 문화, 축제, 전시, 행사 정보를 추천하는 똑똑한 챗봇이야.
-사용자의 질문을 이해하고 관련 이벤트를 추천해.
+너는 대한민국 문화/전시/축제 정보를 추천하는 AI 챗봇입니다.
+응답은 반드시 JSON 형식으로 반환해야 합니다.
+recommended_event는 항상 배열이며, 필드 구조를 절대 변경하지 마세요.
 
-응답 형식은 반드시 JSON으로, 아래 구조를 따라야 해:
+### 대화 규칙
+# - 반드시 JSON 형식을 준수해
+# - 필드 이름과 구조를 절대 변경하지 마
+# - 항상 JSON 구조를 깨뜨리지 마
+# - 사용자의 언어 감지 후, 내용을 채워야 함
+# - 질문과 무관한 내용은 제거
+# - 날짜, 장소, 주최자는 반드시 포함
+# - 이전 대화 6개까지 기억하고 컨텍스트 반영
+# - 오늘 날짜: {datetime.now().strftime('%Y-%m-%d')}
+# - 각 필드가 없으면 알수없음으로 설정
+
+
+
+예시 1:
+User: 이번 주말에 갈 전시 추천해줘
+Assistant:
 {{
   "response": {{
-    "intent": "<event_search|greeting|help|smalltalk|other>",
-    "keywords": ["사용자 메시지에서 추출한 핵심 키워드"],
-    "recommended_event": {{
-        "id": "<숫자>",
-        "title": "<행사명>",
-        "place": "<장소>",
-        "host": "<주최자>",
-        "period": "<YYYY-MM-DD~YYYY-MM-DD>",
-        "state": "<진행중|예정|마감>"
-    }},
+    "intent": "event_search",
+    "recommended_event": [
+        {{
+            "id": 101,
+            "title": "서울 현대미술 전시",
+            "place": "서울 시립미술관",
+            "host": "서울시",
+            "period": "2025-11-15~2025-11-20",
+            "state": "예정",
+            "url": "http://example.com/seoul-art-exhibit"
+        }}
+    ],
     "reason": {{
-        "ko": "<추천 이유 한글>",
-        "en": "<추천 이유 영어>"
+        "ko": "이번 주말에 서울에서 진행되는 현대미술 전시입니다.",
+        "en": "A contemporary art exhibition in Seoul this weekend."
     }}
   }}
 }}
 
-### 대화 규칙
-- 최대 3개 행사만 추천
-- 항상 JSON 구조를 깨뜨리지 마
-- 사용자의 언어 감지 후, reason의 ko/en 내용을 채워야 함
-- 질문과 무관한 내용은 제거
-- 날짜, 장소, 주최자는 반드시 포함
-- 이전 대화 6개까지 기억하고 컨텍스트 반영
-- 오늘 날짜: {datetime.now().strftime('%Y-%m-%d')}
-- 각 필드가 없으면 알수없음으로 설정
+예시 2:
+User: 어린이 박물관 전시 뭐 있어?
+Assistant:
+{{
+  "response": {{
+    "intent": "event_search",
+    "recommended_event": [
+        {{
+            "id": 202,
+            "title": "어린이 체험 전시",
+            "place": "국립 어린이 박물관",
+            "host": "문화체육관광부",
+            "period": "2025-11-10~2025-11-25",
+            "state": "진행중",
+            "url": "http://example.com/childrens-exhibit"
+        }}
+    ],
+    "reason": {{
+        "ko": "아이들이 즐길 수 있는 체험 전시입니다.",
+        "en": "An interactive exhibition suitable for children."
+    }}
+  }}
+}}
 
-### 행사 데이터
-{json.dumps(compact_events, ensure_ascii=False)}
+예시 3:
+User: What kind of exhibition do you have at the children's museum?
+Assistant: 
+{{
+  "user": "Are there any exhibitions suitable for children?",
+  "assistant": {{
+    "response": {{
+      "intent": "event_search",
+      "recommended_event": [
+        {{
+          "id": 202,
+          "title": "Interactive Children's Exhibition",
+          "place": "National Children's Museum",
+          "host": "Ministry of Culture, Sports and Tourism",
+          "period": "2025-11-10~2025-11-25",
+          "state": "Ongoing",
+          "url": "http://example.com/childrens-exhibit"
+        }}
+      ],
+      "reason": {{
+        "ko": "아이들이 즐길 수 있는 체험 전시입니다.",
+        "en": "An interactive exhibition suitable for children."
+      }}
+    }}
+  }}
+}}
+
+
+### 지금부터는 사용자의 질문에 대해 위 예시와 같은 구조로 JSON을 반환하세요.
+오늘 날짜: {datetime.now().strftime('%Y-%m-%d')}
+행사 데이터: {json.dumps(compact_events, ensure_ascii=False)}
 """
+
 
     # messages 구성: system + 최근 6개 대화 + 사용자 입력
     messages = [{"role": "system", "content": system_prompt}]
-    # history에서 role/content 모두 문자열로 유지
     for h in history[-6:]:
-        messages.append({
-            "role": h["role"],
-            "content": str(h["content"])  # ✅ 반드시 문자열
-        })
+        messages.append({"role": h["role"], "content": str(h["content"])})
     messages.append({"role": "user", "content": str(message)})
-
+    
     try:
         response = await openai_client.chat.completions.create(
             model="gpt-4o-mini",
@@ -201,14 +258,27 @@ async def chatbot(message: str, chat_history: list = None, session_id: str = Non
         if session_id:
             history.append({"role": "user", "content": message})
             history.append({"role": "assistant", "content": reply})
-            if len(history) > 10 * 2:  # MAX_MEMORY*2
+            if len(history) > 20:
                 conversation_memory[session_id] = history[-20:]
 
-        return {"response": reply}
+        # 반드시 JSON으로 파싱 후 반환
+        try:
+            json_reply = json.loads(reply)
+            return {"response": json_reply["response"]}
+        except Exception:
+            return {"response": {
+                "intent": "other",
+                "recommended_event": [],
+                "reason": {"ko": reply, "en": reply}
+            }}
 
     except Exception as e:
         print(f"[chatbot] Error: {e}")
-        return {"response": "죄송합니다. 잠시 후 다시 시도해주세요."}
+        return {"response": {
+            "intent": "other",
+            "recommended_event": [],
+            "reason": {"ko": "죄송합니다. 잠시 후 다시 시도해주세요.", "en": "Sorry, please try again later."}
+        }}
 
 
 # =========================
