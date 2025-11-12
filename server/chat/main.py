@@ -343,7 +343,7 @@ Fields:
         fewshot_messages = [
             {
                 "role": "user",
-                "content": "안녕? 오늘 기분은 어때?"
+                "content": "안녕!"
             },
             {
                 "role": "assistant",
