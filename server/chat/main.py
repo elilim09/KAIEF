@@ -1,7 +1,8 @@
 # main.py
 import json
 import os
-from typing import List, Tuple, Optional
+import re
+from typing import List, Tuple, Optional, Dict
 import asyncio
 import aiofiles
 from fastapi import FastAPI, Request
@@ -307,6 +308,183 @@ async def extract_keywords_with_openai(raw_message: str) -> List[str]:
     return keywords or ([raw_message] if raw_message else [])
 
 
+def detect_language(raw_message: str) -> str:
+    """간단한 언어 감지(영문 위주 여부)"""
+    if not raw_message:
+        return "ko"
+
+    letters = [ch for ch in raw_message if ch.isalpha()]
+    if not letters:
+        return "ko"
+
+    ascii_letters = sum(1 for ch in letters if ch.isascii())
+    non_ascii_letters = len(letters) - ascii_letters
+
+    if ascii_letters and (non_ascii_letters == 0 or ascii_letters >= non_ascii_letters * 2):
+        return "en"
+    return "ko"
+
+
+async def analyze_user_intent(raw_message: str) -> Dict[str, object]:
+    """사용자 메시지의 의도 파악"""
+    default = {"intent": "event_search", "keywords": []}
+    if not raw_message:
+        return default
+
+    if openai_client:
+        system_prompt = """
+You are an intent analyst for an event recommendation assistant.
+Strictly return JSON without extra text.
+Fields:
+- intent: one of ["event_search","greeting","smalltalk","help","other"].
+- keywords: array of normalized search keywords ONLY when intent is "event_search".
+"""
+
+        fewshot_messages = [
+            {
+                "role": "user",
+                "content": "안녕!"
+            },
+            {
+                "role": "assistant",
+                "content": json.dumps({
+                    "intent": "smalltalk",
+                    "keywords": []
+                }, ensure_ascii=False)
+            },
+            {
+                "role": "user",
+                "content": "주말에 아이랑 갈만한 무료 체험행사 알려줘"
+            },
+            {
+                "role": "assistant",
+                "content": json.dumps({
+                    "intent": "event_search",
+                    "keywords": ["주말", "어린이", "체험", "무료"]
+                }, ensure_ascii=False)
+            },
+            {
+                "role": "user",
+                "content": "How do I use this service?"
+            },
+            {
+                "role": "assistant",
+                "content": json.dumps({
+                    "intent": "help",
+                    "keywords": []
+                })
+            },
+            {
+                "role": "user",
+                "content": "AI 컨퍼런스 말고 다른 소식은 없어?"
+            },
+            {
+                "role": "assistant",
+                "content": json.dumps({
+                    "intent": "other",
+                    "keywords": []
+                }, ensure_ascii=False)
+            },
+            {
+                "role": "user",
+                "content": "Hello there!"
+            },
+            {
+                "role": "assistant",
+                "content": json.dumps({
+                    "intent": "greeting",
+                    "keywords": []
+                })
+            },
+        ]
+
+        messages = (
+            [{"role": "system", "content": system_prompt.strip()}]
+            + fewshot_messages
+            + [{"role": "user", "content": raw_message}]
+        )
+
+        try:
+            resp = await openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                response_format={"type": "json_object"},
+                temperature=0.1,
+            )
+            parsed = json.loads(resp.choices[0].message.content)
+            intent = parsed.get("intent")
+            keywords = parsed.get("keywords", [])
+            if intent not in {"event_search", "greeting", "smalltalk", "help", "other"}:
+                intent = "event_search"
+            if not isinstance(keywords, list):
+                keywords = []
+            keywords = [str(k).strip() for k in keywords if isinstance(k, str) and k.strip()]
+            return {"intent": intent, "keywords": keywords}
+        except Exception:
+            pass
+
+    lower = raw_message.lower()
+    # 행사 관련 키워드가 포함되어 있으면 event_search 로 판단
+    event_terms = [
+        "행사", "이벤트", "추천", "공연", "전시", "체험", "대회", "강연", "festival",
+        "event", "conference", "exhibition", "concert", "competition", "workshop",
+    ]
+    if any(term in lower for term in event_terms):
+        return default
+
+    greeting_terms = ["hello", "hi", "안녕", "안녕하세요", "하이", "헤이"]
+    if any(term in lower for term in greeting_terms):
+        return {"intent": "greeting", "keywords": []}
+
+    help_terms = ["help", "도와", "사용법", "어떻게", "방법", "guide"]
+    if any(term in lower for term in help_terms):
+        return {"intent": "help", "keywords": []}
+
+    smalltalk_patterns = [r"\b어때", r"\b좋아", r"\b날씨", r"\b기분", "how are you"]
+    if any(re.search(pattern, lower) for pattern in smalltalk_patterns):
+        return {"intent": "smalltalk", "keywords": []}
+
+    return {"intent": "other", "keywords": []}
+
+
+def build_non_event_reason(intent: str, language: str) -> Dict[str, str]:
+    """행사 검색 이외 의도에 대한 응답"""
+    responses = {
+        "greeting": {
+            "ko": "안녕하세요! 행사 추천을 도와드릴게요. 원하는 행사나 조건을 말씀해 주세요.",
+            "en": "Hello! I'm here to help you discover events. Tell me what kind of event you're interested in.",
+        },
+        "smalltalk": {
+            "ko": "저는 행사 추천을 도와드리는 챗봇이에요. 어떤 행사를 찾고 계신지 알려주시면 검색해 드릴게요.",
+            "en": "I'm an assistant that helps you find events. Let me know what you're looking for and I'll search for you.",
+        },
+        "help": {
+            "ko": "행사 유형, 대상, 지역, 일정, 비용 등 원하는 조건을 알려주시면 알맞은 행사를 찾아드릴게요.",
+            "en": "Share details like event type, audience, location, date, or budget, and I'll recommend matching events.",
+        },
+        "other": {
+            "ko": "행사 관련 요청을 주시면 더욱 정확하게 도와드릴 수 있어요. 찾고 싶은 행사가 있다면 조건을 알려주세요.",
+            "en": "I can best assist with event-related requests. Let me know the kind of event you need and any preferences.",
+        },
+    }
+
+    reason = responses.get(intent) or responses["other"]
+    if language == "en":
+        english_text = reason.get("en", "")
+        return {"ko": english_text, "en": english_text}
+    return reason
+
+
+def align_reason_language(reason: Dict[str, str], language: str) -> Dict[str, str]:
+    """사용자 언어에 맞춰 응답 언어 조정"""
+    if not isinstance(reason, dict):
+        return reason
+    if language == "en":
+        english_text = reason.get("en") or reason.get("ko") or ""
+        return {"ko": english_text, "en": english_text}
+    return reason
+
+
 def score_event(event: dict, keywords: List[str]) -> int:
     """간단한 키워드 점수 계산 (번역 필드 포함)"""
     # 원본 필드
@@ -352,9 +530,42 @@ async def handle_chat_logic(raw_message: str) -> dict:
             }
         }
 
+    language = detect_language(raw_message)
+
     try:
-        keywords = await extract_keywords_with_openai(raw_message)
-        # 매칭
+        intent_info = await analyze_user_intent(raw_message)
+    except Exception:
+        intent_info = {"intent": "event_search", "keywords": []}
+
+    intent = intent_info.get("intent", "event_search")
+
+    if intent != "event_search":
+        reason = build_non_event_reason(intent, language)
+        reason = align_reason_language(reason, language)
+        return {
+            "response": {
+                "intent": intent,
+                "keywords": intent_info.get("keywords", []),
+                "recommended_event": {},
+                "reason": reason,
+            }
+        }
+
+    try:
+        keywords = intent_info.get("keywords") or []
+        if keywords:
+            # 중복 제거 및 정리
+            seen = set()
+            cleaned = []
+            for kw in keywords:
+                key = kw.lower()
+                if key not in seen:
+                    cleaned.append(kw)
+                    seen.add(key)
+            keywords = cleaned
+        else:
+            keywords = await extract_keywords_with_openai(raw_message)
+
         matching: List[Tuple[dict, int]] = []
         for ev in events_data:
             s = score_event(ev, keywords)
@@ -362,32 +573,41 @@ async def handle_chat_logic(raw_message: str) -> dict:
                 matching.append((ev, s))
 
         if not matching:
+            reason = build_reason(None, keywords)
+            reason = align_reason_language(reason, language)
             return {
                 "response": {
+                    "intent": intent,
                     "keywords": keywords,
                     "recommended_event": {},
-                    "reason": build_reason(None, keywords),
+                    "reason": reason,
                 }
             }
 
         best_event, _ = max(matching, key=lambda x: x[1])
+        reason = build_reason(best_event, keywords)
+        reason = align_reason_language(reason, language)
         return {
             "response": {
+                "intent": intent,
                 "keywords": keywords,
                 "recommended_event": best_event,
-                "reason": build_reason(best_event, keywords),
+                "reason": reason,
             }
         }
     except Exception as e:
         # 에러 시에도 일관된 JSON 반환
+        reason = {
+            "ko": f"오류가 발생했습니다: {str(e)}",
+            "en": f"An error occurred: {str(e)}"
+        }
+        reason = align_reason_language(reason, language)
         return {
             "response": {
+                "intent": intent,
                 "keywords": [],
                 "recommended_event": {},
-                "reason": {
-                    "ko": f"오류가 발생했습니다: {str(e)}",
-                    "en": f"An error occurred: {str(e)}"
-                }
+                "reason": reason,
             }
         }
 
