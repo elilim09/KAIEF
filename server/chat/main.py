@@ -1,8 +1,10 @@
 # main.py
 import json
+import math
 import os
 import re
-from typing import List, Tuple, Optional, Dict
+from typing import Any, Dict, List, Optional
+
 import asyncio
 import aiofiles
 from fastapi import FastAPI, Request
@@ -39,6 +41,8 @@ EVENTS_EN_JSON_PATH = os.getenv(
     "EVENTS_EN_JSON_PATH",
     os.path.join(BASE_DIR, "events_en.json")
 )
+DEFAULT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
+EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 
 openai_client: Optional[AsyncOpenAI] = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
@@ -46,6 +50,193 @@ openai_client: Optional[AsyncOpenAI] = AsyncOpenAI(api_key=OPENAI_API_KEY) if OP
 # In-memory cache
 # =========================
 events_data: List[dict] = []
+
+
+class EventRetriever:
+    """행사 데이터를 위한 간단한 RAG 검색기"""
+
+    def __init__(self, embedding_model: str) -> None:
+        self.embedding_model = embedding_model
+        self.events: List[dict] = []
+        self.documents: List[Dict[str, Any]] = []
+        self.embeddings: List[Any] = []
+        self._vector_mode: str = "openai"  # 또는 fallback
+        self._embedding_ready: bool = False
+        self._lock = asyncio.Lock()
+        self._event_by_id: Dict[Any, dict] = {}
+
+    def refresh(self, events: List[dict]) -> None:
+        self.events = events or []
+        self._event_by_id = {event["id"]: event for event in self.events if "id" in event}
+        self.documents = [
+            {
+                "id": event["id"],
+                "text": self._compose_document(event)
+            }
+            for event in self.events
+            if "id" in event
+        ]
+        self.embeddings = []
+        self._embedding_ready = False
+
+    def _compose_document(self, event: dict) -> str:
+        sections = []
+        title = event.get("title") or ""
+        title_en = event.get("title_en") or ""
+        if title:
+            sections.append(f"제목: {title}")
+        if title_en and title_en != title:
+            sections.append(f"Title: {title_en}")
+        category = event.get("category") or event.get("category_en") or ""
+        if category:
+            sections.append(f"카테고리: {category}")
+        period = event.get("period") or event.get("date") or event.get("datetime") or ""
+        if period:
+            sections.append(f"기간: {period}")
+        period_en = event.get("period_en")
+        if period_en and period_en != period:
+            sections.append(f"Schedule: {period_en}")
+        place = event.get("place") or event.get("location") or ""
+        if place:
+            sections.append(f"장소: {place}")
+        place_en = event.get("place_en")
+        if place_en and place_en != place:
+            sections.append(f"Venue: {place_en}")
+        host = event.get("host") or event.get("organization") or ""
+        if host:
+            sections.append(f"주최: {host}")
+        host_en = event.get("host_en")
+        if host_en and host_en != host:
+            sections.append(f"Host: {host_en}")
+        description = event.get("deep_data") or event.get("description") or event.get("overview") or ""
+        if description:
+            sections.append(f"설명: {description}")
+        description_en = event.get("description_en")
+        if description_en and description_en != description:
+            sections.append(f"Summary: {description_en}")
+        cost = event.get("cost")
+        if cost:
+            sections.append(f"비용: {cost}")
+        keywords = event.get("keywords")
+        if keywords:
+            sections.append(f"키워드: {keywords}")
+        return "\n".join(sections)
+
+    def _tokenize(self, text: str) -> List[str]:
+        return [tok for tok in re.findall(r"[\w가-힣]+", text.lower()) if tok]
+
+    def _fallback_vectorize(self, text: str) -> Dict[str, float]:
+        tokens = self._tokenize(text)
+        freq: Dict[str, float] = {}
+        for token in tokens:
+            freq[token] = freq.get(token, 0.0) + 1.0
+        norm = math.sqrt(sum(v * v for v in freq.values())) or 1.0
+        freq["__norm__"] = norm
+        return freq
+
+    def _fallback_cosine(self, a: Dict[str, float], b: Dict[str, float]) -> float:
+        norm_a = a.get("__norm__", 0.0)
+        norm_b = b.get("__norm__", 0.0)
+        if norm_a == 0.0 or norm_b == 0.0:
+            return 0.0
+        keys = set(a.keys()) | set(b.keys())
+        keys.discard("__norm__")
+        dot = sum(a.get(k, 0.0) * b.get(k, 0.0) for k in keys)
+        return dot / (norm_a * norm_b) if dot else 0.0
+
+    async def ensure_embeddings(self) -> None:
+        if self._embedding_ready:
+            return
+        async with self._lock:
+            if self._embedding_ready:
+                return
+            if not self.documents:
+                self._embedding_ready = True
+                return
+
+            texts = [doc["text"] for doc in self.documents]
+            if openai_client:
+                try:
+                    resp = await openai_client.embeddings.create(
+                        model=self.embedding_model,
+                        input=texts,
+                    )
+                    embeddings = [item.embedding for item in resp.data]  # type: ignore[attr-defined]
+                    if len(embeddings) != len(texts):
+                        raise ValueError("Embedding response size mismatch")
+                    self.embeddings = embeddings
+                    self._vector_mode = "openai"
+                except Exception as exc:
+                    print(f"[EventRetriever] Failed to fetch embeddings from OpenAI: {exc}. Falling back to local vectors.")
+                    self.embeddings = [self._fallback_vectorize(text) for text in texts]
+                    self._vector_mode = "fallback"
+            else:
+                self.embeddings = [self._fallback_vectorize(text) for text in texts]
+                self._vector_mode = "fallback"
+
+            self._embedding_ready = True
+
+    async def search(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
+        query = (query or "").strip()
+        if not query:
+            return []
+
+        await self.ensure_embeddings()
+        if not self.documents or not self.embeddings:
+            return []
+
+        vector_mode = self._vector_mode
+        query_vector: Any
+
+        if vector_mode == "openai" and openai_client:
+            try:
+                resp = await openai_client.embeddings.create(
+                    model=self.embedding_model,
+                    input=[query],
+                )
+                query_vector = resp.data[0].embedding  # type: ignore[index]
+            except Exception as exc:
+                print(f"[EventRetriever] Query embedding failed: {exc}. Using fallback vectors.")
+                vector_mode = "fallback"
+                query_vector = self._fallback_vectorize(query)
+        else:
+            query_vector = self._fallback_vectorize(query)
+            vector_mode = "fallback"
+
+        scored: List[Dict[str, Any]] = []
+        for doc, embedding in zip(self.documents, self.embeddings):
+            event = self._event_by_id.get(doc["id"]) if self._event_by_id else None
+            if not event:
+                continue
+            if vector_mode == "openai":
+                if not isinstance(embedding, list):
+                    continue
+                norm_query = math.sqrt(sum(v * v for v in query_vector))
+                norm_doc = math.sqrt(sum(v * v for v in embedding))
+                if norm_query == 0.0 or norm_doc == 0.0:
+                    score = 0.0
+                else:
+                    score = sum(q * d for q, d in zip(query_vector, embedding)) / (norm_query * norm_doc)
+            else:
+                if not isinstance(embedding, dict):
+                    continue
+                score = self._fallback_cosine(query_vector, embedding)  # type: ignore[arg-type]
+
+            if score <= 0:
+                continue
+            scored.append({
+                "event": event,
+                "score": float(score),
+                "document": doc["text"],
+                "vector_mode": vector_mode,
+            })
+
+        scored.sort(key=lambda item: item["score"], reverse=True)
+        return scored[:max(1, top_k)]
+
+
+event_retriever = EventRetriever(EMBEDDING_MODEL)
+
 
 async def translate_en_to_ko(text: str) -> str:
     """영문을 한국어로 번역"""
@@ -60,25 +251,21 @@ async def translate_en_to_ko(text: str) -> str:
 
     try:
         resp = await openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=DEFAULT_MODEL,
             messages=messages,
             temperature=0.1,
             response_format={"type": "json_object"},
         )
-        # 응답에서 번역 텍스트 추출
         translated = resp.choices[0].message.content
-        return translated.strip()
+        return (translated or text).strip()
     except Exception:
         return text
 
 
 def compute_event_state(period: str) -> str:
-    """
-    period: "YYYY-MM-DD~YYYY-MM-DD" 형식
-    현재 날짜 기준으로 진행중 / 종료 결정
-    """
+    """기간 텍스트로 행사 진행 상태 계산"""
     if not period or "~" not in period:
-        return "알수없음"  # 기간 정보 없으면 기본 진행중
+        return "알수없음"
 
     try:
         start_str, end_str = period.split("~")
@@ -88,24 +275,22 @@ def compute_event_state(period: str) -> str:
 
         if today < start_date:
             return "예정"
-        elif start_date <= today <= end_date:
+        if start_date <= today <= end_date:
             return "진행중"
-        else:
-            return "종료"
+        return "종료"
     except Exception:
-        return "알수없음"  # 파싱 오류 시 기본 진행중
+        return "알수없음"
+
 
 async def translate_event_with_openai(event: dict) -> dict:
     """행사 정보를 OpenAI를 사용해 영어로 번역"""
     if not openai_client:
         return {}
 
-    # 번역할 필드
     title = event.get("title") or ""
     place = event.get("place") or ""
     host = event.get("host") or ""
-    period = event.get("period") or ""  # 번역 대상에 포함
-    # state는 번역 X
+    period = event.get("period") or ""
 
     if not title and not place and not host and not period:
         return {"id": event.get("id")}
@@ -117,21 +302,25 @@ Translate the following JSON values from Korean to English.
 - Provide only the translated JSON object, without any additional text or explanations.
 - If a field is empty or missing, keep it as an empty string.
 """
-    user_content = json.dumps({
-        "title": title,
-        "place": place,
-        "host": host,
-        "period": period
-    }, ensure_ascii=False)
+
+    user_content = json.dumps(
+        {
+            "title": title,
+            "place": place,
+            "host": host,
+            "period": period,
+        },
+        ensure_ascii=False,
+    )
 
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_content}
+        {"role": "user", "content": user_content},
     ]
 
     try:
         resp = await openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=DEFAULT_MODEL,
             messages=messages,
             response_format={"type": "json_object"},
             temperature=0.1,
@@ -142,201 +331,21 @@ Translate the following JSON values from Korean to English.
             "title_en": translated_content.get("title", ""),
             "place_en": translated_content.get("place", ""),
             "host_en": translated_content.get("host", ""),
-            "period_en": translated_content.get("period", "")
+            "period_en": translated_content.get("period", ""),
         }
-    except Exception as e:
-        print(f"Error translating event ID {event.get('id')}: {e}")
+    except Exception as exc:
+        print(f"Error translating event ID {event.get('id')}: {exc}")
         return {
             "id": event.get("id"),
             "title_en": "",
             "place_en": "",
             "host_en": "",
-            "period_en": ""
+            "period_en": "",
         }
-
-def build_reason(event: Optional[dict], keywords: List[str]) -> dict:
-    """추천 사유 텍스트(ko/en) 구성"""
-    if not event:
-        return {
-            "ko": "요청과 일치하는 행사를 찾지 못했습니다. 다른 조건으로 다시 시도해보세요.",
-            "en": "No matching events were found. Try adjusting the filters and ask again."
-        }
-
-    # ko
-    title_ko = event.get("title") or "행사"
-    location = event.get("place") or event.get("location") or ""
-    period = event.get("period") or event.get("date") or event.get("datetime") or ""
-    host = event.get("host") or event.get("organization") or ""
-
-    # en (번역 필드 우선 사용)
-    title_en = event.get("title_en") or title_ko
-
-    top_keywords = [k for k in (keywords or []) if k][:3]
-    keyword_str = ", ".join(top_keywords)
-
-    reason_ko = []
-    reason_en = []
-
-    if keyword_str:
-        reason_ko.append(f"'{keyword_str}' 키워드와 가장 잘 맞는 '{title_ko}' 행사를 추천했어요.")
-        reason_en.append(f"We matched the keywords '{keyword_str}' with the event '{title_en}'.")
-    else:
-        reason_ko.append(f"'{title_ko}' 행사를 추천했어요.")
-        reason_en.append(f"We recommend the event '{title_en}'.")
-
-    if period:
-        reason_ko.append(f"일정은 {period}입니다.")
-        reason_en.append(f"It runs on {period}.")
-
-    if location:
-        reason_ko.append(f"장소는 {location}이에요.")
-        reason_en.append(f"The venue is {location}.")
-
-    if host:
-        reason_ko.append(f"주관 기관은 {host}입니다.")
-        reason_en.append(f"Hosted by {host}.")
-
-    reason_ko.append("자세한 사항은 행사 링크에서 확인해보세요.")
-    reason_en.append("Check the event link for more details.")
-
-    return {"ko": " ".join(reason_ko), "en": " ".join(reason_en)}
-
-
-async def extract_keywords_with_openai(raw_message: str) -> List[str]:
-    """
-    OpenAI를 사용해 정규화 키워드 추출.
-    OPENAI_API_KEY 미설정 시, 간단 폴백(띄어쓰기 기반 상위 몇 개 단어) 사용.
-    """
-    print("!")
-    # 폴백: 키워드 간단 분리
-    if not openai_client:
-        words = [w.strip() for w in raw_message.split() if len(w.strip()) >= 2]
-        # 너무 일반적인 단어 제거(간단 룰)
-        stop = {"행사", "추천", "알려줘", "찾아줘", "있을까", "좀", "요", "은", "는", "이", "가"}
-        keywords = [w for w in words if w not in stop][:6]
-        return keywords or ([raw_message] if raw_message else [])
-
-    system_prompt = """
-당신은 행사 추천 시스템을 위한 '키워드 정규화 추출기'입니다.
-반드시 JSON 객체만 반환합니다.
-
-[목표]
-- 사용자의 자유로운 질문 입력에서 검색/필터에 유용한 핵심 키워드를 3~7개 추출합니다.
-- 핵심 키워드와 관련된 세부 키워드를 약 20~30개 확장 추출하여 키워드에 추가합니다.
-- 이때, 확장 추출된 키워드는 '동의어/상위어/연령대/대상/활동유형/공간유형/비용' 등으로, '정규화'된 키워드를 포함합니다.
-- 예를 들어, '가족'이 포함되면 '초등학생','놀이','사회성','어린이'와 같은 연관 키워드를 적극 확장합니다.
-
-[출력 형식 - 반드시 준수]
-{
-  "keywords": ["정규화된, 소문자, 공백 제거 최소화, 한글 유지"],
-  "categories": ["(선택) 카테고리 라벨"],
-  "inferred": ["(선택) 암시된 조건/의도"],
-  "excluded": ["(선택) 제외해야 할 것(부정 표현)"]
-}
-
-[정규화/확장 규칙 요약]
-- 날짜: 오늘/주말/이번주/이번달 등 의미 보존
-- 비용: 무료/유료
-- 공간: 실내/야외/온라인
-- 대상: 어린이/초등학생/청소년/성인/어르신 등
-- 활동: 체험/공연/전시/강연/교육/대회 등
-- 지역/고유명사: 원형 유지
-- 부정: "~말고, 제외, 빼고, 싫어" → excluded
-- 3~7개, 중복/불용어 제거
-"""
-
-    fewshot = [
-        {
-            "role": "user",
-            "content": "주말에 가족이랑 아이가 즐길 수 있는 무료 야외 체험 있어?"
-        },
-        {
-            "role": "assistant",
-            "content": """
-{
-  "keywords": ["주말","가족","어린이","초등학생","야외","체험","무료", "청소년", "놀이", "사회성", "자연"],
-  "categories": ["교육","체험"],
-  "inferred": ["가족 동반","놀이","사회성"],
-  "excluded": []
-}
-""".strip()
-        },
-        {
-            "role": "user",
-            "content": "고등학생 대상 ai 경진대회 같은 거 있을까? 분당 근처면 좋고, 온라인 말고 오프라인 원해."
-        },
-        {
-            "role": "assistant",
-            "content": """
-{
-  "keywords": ["고등학생","청소년","ai","대회","경진대회","분당","오프라인","현장", "진학","스펙","코딩","프로그래밍"],
-  "categories": ["대회","교육"],
-  "inferred": ["진학/스펙","코딩"],
-  "excluded": ["온라인"]
-}
-""".strip()
-        },
-        {
-            "role": "user",
-            "content": "실내 전시 찾아줘. 어린이용 말고 성인 위주로, 미술 쪽이면 좋겠어."
-        },
-        {
-            "role": "assistant",
-            "content": """
-{
-  "keywords": ["실내","전시","미술","성인", "문화", "예술", "갤러리", "박물관", "어른"],
-  "categories": ["전시","문화"],
-  "inferred": [],
-  "excluded": ["어린이","초등학생","가족"]
-}
-""".strip()
-        },
-        {
-            "role": "user",
-            "content": "무료 강연 좋은데 야외는 말고 실내 위주로. 어린이 프로그램은 빼줘."
-        },
-        {
-            "role": "assistant",
-            "content": """
-{
-  "keywords": ["무료","강연","실내", "성인", "교육", "워크숍", "세미나", "컨퍼런스", "어른"],
-  "categories": ["강연","교육"],
-  "inferred": [],
-  "excluded": ["야외","어린이","초등학생","가족"]
-}
-""".strip()
-        },
-    ]
-
-    messages = [{"role": "system", "content": system_prompt}] + fewshot + [
-        {"role": "user", "content": raw_message}
-    ]
-
-    resp = await openai_client.chat.completions.create(
-        model="gpt-5-mini",
-        messages=messages,
-        response_format={"type": "json_object"},
-        temperature=1
-    )
-
-
-    try:
-        parsed = json.loads(resp.choices[0].message.content)
-    except Exception:
-        # 안전 폴백
-        words = [w.strip() for w in raw_message.split() if len(w.strip()) >= 2]
-        return words[:6] or ([raw_message] if raw_message else [])
-
-    candidates = parsed.get("keywords") or parsed.get("categories") or []
-    if isinstance(candidates, str):
-        candidates = [candidates]
-    keywords = [k for k in candidates if isinstance(k, str) and k.strip()]
-    print(keywords)
-    return keywords or ([raw_message] if raw_message else [])
 
 
 def detect_language(raw_message: str) -> str:
-    """간단한 언어 감지(영문 위주 여부)"""
+    """간단한 언어 감지"""
     if not raw_message:
         return "ko"
 
@@ -352,375 +361,302 @@ def detect_language(raw_message: str) -> str:
     return "ko"
 
 
-async def analyze_user_intent(raw_message: str) -> Dict[str, object]:
-    """사용자 메시지의 의도 파악"""
-    default = {"intent": "event_search", "keywords": []}
-    if not raw_message:
-        return default
+def prepare_event_for_language(event: dict, language: str, score: Optional[float] = None) -> dict:
+    if not event:
+        return {}
 
-    if openai_client:
-        system_prompt = """
-You are an intent analyst for an event recommendation assistant.
-Strictly return JSON without extra text.
-Fields:
-- intent: one of ["event_search","greeting","smalltalk","help","other"].
-- keywords: array of normalized search keywords ONLY when intent is "event_search".
-"""
-
-        fewshot_messages = [
-            {
-                "role": "user",
-                "content": "안녕!"
-            },
-            {
-                "role": "assistant",
-                "content": json.dumps({
-                    "intent": "smalltalk",
-                    "keywords": []
-                }, ensure_ascii=False)
-            },
-            {
-                "role": "user",
-                "content": "주말에 아이랑 갈만한 무료 체험행사 알려줘"
-            },
-            {
-                "role": "assistant",
-                "content": json.dumps({
-                    "intent": "event_search",
-                    "keywords": ["주말", "어린이", "체험", "무료"]
-                }, ensure_ascii=False)
-            },
-            {
-                "role": "user",
-                "content": "How do I use this service?"
-            },
-            {
-                "role": "assistant",
-                "content": json.dumps({
-                    "intent": "help",
-                    "keywords": []
-                })
-            },
-            {
-                "role": "user",
-                "content": "AI 컨퍼런스 말고 다른 소식은 없어?"
-            },
-            {
-                "role": "assistant",
-                "content": json.dumps({
-                    "intent": "other",
-                    "keywords": []
-                }, ensure_ascii=False)
-            },
-            {
-                "role": "user",
-                "content": "Hello there!"
-            },
-            {
-                "role": "assistant",
-                "content": json.dumps({
-                    "intent": "greeting",
-                    "keywords": []
-                })
-            },
-        ]
-
-        messages = (
-            [{"role": "system", "content": system_prompt.strip()}]
-            + fewshot_messages
-            + [{"role": "user", "content": raw_message}]
-        )
-
-        try:
-            resp = await openai_client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages,
-                response_format={"type": "json_object"},
-                temperature=0.1,
-            )
-            parsed = json.loads(resp.choices[0].message.content)
-            intent = parsed.get("intent")
-            keywords = parsed.get("keywords", [])
-            if intent not in {"event_search", "greeting", "smalltalk", "help", "other"}:
-                intent = "event_search"
-            if not isinstance(keywords, list):
-                keywords = []
-            keywords = [str(k).strip() for k in keywords if isinstance(k, str) and k.strip()]
-            return {"intent": intent, "keywords": keywords}
-        except Exception:
-            pass
-
-    lower = raw_message.lower()
-    # 행사 관련 키워드가 포함되어 있으면 event_search 로 판단
-    event_terms = [
-        "행사", "이벤트", "추천", "공연", "전시", "체험", "대회", "강연", "festival",
-        "event", "conference", "exhibition", "concert", "competition", "workshop",
-    ]
-    if any(term in lower for term in event_terms):
-        return default
-
-    greeting_terms = ["hello", "hi", "안녕", "안녕하세요", "하이", "헤이"]
-    if any(term in lower for term in greeting_terms):
-        return {"intent": "greeting", "keywords": []}
-
-    help_terms = ["help", "도와", "사용법", "어떻게", "방법", "guide"]
-    if any(term in lower for term in help_terms):
-        return {"intent": "help", "keywords": []}
-
-    smalltalk_patterns = [r"\b어때", r"\b좋아", r"\b날씨", r"\b기분", "how are you"]
-    if any(re.search(pattern, lower) for pattern in smalltalk_patterns):
-        return {"intent": "smalltalk", "keywords": []}
-
-    return {"intent": "other", "keywords": []}
-
-
-def build_non_event_reason(intent: str, language: str) -> Dict[str, str]:
-    """행사 검색 이외 의도에 대한 응답"""
-    responses = {
-        "greeting": {
-            "ko": "안녕하세요! 행사 추천을 도와드릴게요. 원하는 행사나 조건을 말씀해 주세요.",
-            "en": "Hello! I'm here to help you discover events. Tell me what kind of event you're interested in.",
-        },
-        "smalltalk": {
-            "ko": "저는 행사 추천을 도와드리는 챗봇이에요. 어떤 행사를 찾고 계신지 알려주시면 검색해 드릴게요.",
-            "en": "I'm an assistant that helps you find events. Let me know what you're looking for and I'll search for you.",
-        },
-        "help": {
-            "ko": "행사 유형, 대상, 지역, 일정, 비용 등 원하는 조건을 알려주시면 알맞은 행사를 찾아드릴게요.",
-            "en": "Share details like event type, audience, location, date, or budget, and I'll recommend matching events.",
-        },
-        "other": {
-            "ko": "행사 관련 요청을 주시면 더욱 정확하게 도와드릴 수 있어요. 찾고 싶은 행사가 있다면 조건을 알려주세요.",
-            "en": "I can best assist with event-related requests. Let me know the kind of event you need and any preferences.",
-        },
+    event_copy = {k: v for k, v in event.items()}
+    state_map = {
+        "진행중": "Ongoing",
+        "종료": "Ended",
+        "예정": "Upcoming",
+        "알수없음": "Unknown",
     }
 
-    reason = responses.get(intent) or responses["other"]
     if language == "en":
-        english_text = reason.get("en", "")
-        return {"ko": english_text, "en": english_text}
-    return reason
+        event_copy["title_original"] = event.get("title")
+        event_copy["place_original"] = event.get("place") or event.get("location")
+        event_copy["host_original"] = event.get("host") or event.get("organization")
+        event_copy["period_original"] = event.get("period") or event.get("date") or event.get("datetime")
+        if event.get("title_en"):
+            event_copy["title"] = event.get("title_en")
+        if event.get("place_en"):
+            event_copy["place"] = event.get("place_en")
+        if event.get("host_en"):
+            event_copy["host"] = event.get("host_en")
+        if event.get("period_en"):
+            event_copy["period"] = event.get("period_en")
+        if event.get("state") in state_map:
+            event_copy["state"] = state_map[event.get("state")]
 
-def align_reason_language(reason: dict, language: str) -> dict:
-    """
-    사용자의 언어에 맞춰 응답(reason) 텍스트를 조정합니다.
+    if score is not None:
+        event_copy["rag_score"] = round(float(score), 4)
 
-    - reason: {"ko": "...", "en": "..."} 형태의 딕셔너리
-    - language: "ko" 또는 "en"
-    
-    반환: {"ko": "...", "en": "..."} 형태로 항상 딕셔너리 반환
-    """
-    if not isinstance(reason, dict):
-        # 딕셔너리가 아닌 경우 그대로 반환
-        return reason
-
-    ko_text = reason.get("ko", "")
-    en_text = reason.get("en", "")
-
-    if language == "en":
-        # 영어 입력이면 영어 텍스트를 ko/en 둘 다에 넣어서 반환
-        text = en_text or ko_text
-        return {"ko": text, "en": text}
-
-    # 한국어 입력이면 원래대로 반환
-    return {"ko": ko_text, "en": en_text}
-
-def score_event(event: dict, keywords: List[str]) -> int:
-    """간단한 키워드 점수 계산 (번역 필드 포함)"""
-    # 원본 필드
-    title = (event.get('title') or '').lower()
-    description = (event.get('deep_data') or '').lower()
-    category_text = (event.get('category') or '').lower()
-    # 번역 필드
-    title_en = (event.get('title_en') or '').lower()
-    description_en = (event.get('description_en') or '').lower()
-    category_text_en = (event.get('category_en') or '').lower()
-    state = (event.get('state') or '').lower()
-
-    score = 0
-    for kw in keywords:
-        k = kw.lower()
-        # 원본 텍스트에서 점수 계산
-        if k in title:
-            score += 2
-        if k in description:
-            score += 1
-        if k in category_text:
-            score += 1
-        # 번역 텍스트에서 점수 계산 (가중치 동일)
-        if title_en and k in title_en:
-            score += 2
-        if description_en and k in description_en:
-            score += 1
-        if category_text_en and k in category_text_en:
-            score += 1
-
-    # state가 "종료"이면 점수 1 감소
-    if state == "종료":
-        score -= 1
-
-    return score
+    return event_copy
 
 
-# 전역 변수: 사용자별 추천 이벤트 ID 추적
-user_recommended_events: Dict[str, set] = {}  # key: user_id/session_id, value: set of event IDs
+def build_reason_payload(text: str, language: str) -> Dict[str, str]:
+    message = (text or "").strip()
+    if not message:
+        message = "죄송하지만 요청하신 내용에 응답할 수 없습니다."
+    return {"ko": message, "en": message}
+
+
+SYSTEM_PROMPT = """
+당신은 KAIEF라는 이름의 AI 어시스턴트입니다. 사용자의 질문에 친절하게 답변하고, 필요한 경우 대한민국의 행사 정보를 추천합니다.
+- 일반적인 대화, 설명, 질문에는 스스로 답변합니다.
+- 사용자가 행사 추천이나 갈 곳, 참여할 프로그램 등을 묻는 경우에는 반드시 `search_events` 도구를 호출해 관련 행사를 조회한 뒤 답변하세요.
+- 도구를 통해 받은 행사 정보를 바탕으로 신뢰할 수 있는 추천 답변을 작성하고, 결과가 없으면 정중하게 사유를 설명합니다.
+- 사용자의 언어(한국어 또는 영어)에 맞춰 자연스럽게 응답합니다.
+- 도구 결과를 사용할 때는 행사명, 일정, 장소 등 핵심 정보를 명확하게 전달하고, 필요한 경우 불릿 리스트를 활용합니다.
+""".strip()
+
+
+FEWSHOT_MESSAGES = [
+    {
+        "role": "user",
+        "content": "안녕?",
+    },
+    {
+        "role": "assistant",
+        "content": "안녕하세요! 궁금한 것이 있으면 무엇이든 말씀해주세요.",
+    },
+    {
+        "role": "user",
+        "content": "지금 날씨 어때?",
+    },
+    {
+        "role": "assistant",
+        "content": "제가 직접 날씨를 확인할 수는 없지만, 기상청이나 날씨 앱에서 현재 정보를 빠르게 확인할 수 있어요.",
+    },
+    {
+        "role": "user",
+        "content": "주말에 가족이랑 갈 만한 행사 추천해줘",
+    },
+    {
+        "role": "assistant",
+        "content": None,
+        "tool_calls": [
+            {
+                "id": "call_example_1",
+                "type": "function",
+                "function": {
+                    "name": "search_events",
+                    "arguments": json.dumps({"query": "주말 가족 체험 행사", "top_k": 3}, ensure_ascii=False),
+                },
+            }
+        ],
+    },
+    {
+        "role": "tool",
+        "tool_call_id": "call_example_1",
+        "content": json.dumps(
+            {
+                "query": "주말 가족 체험 행사",
+                "results": [
+                    {
+                        "event_id": 0,
+                        "title": "가족과 함께하는 과학 체험전",
+                        "period": "2024-08-01~2024-08-15",
+                        "place": "서울 과학관",
+                        "score": 0.89,
+                        "context": "가족 대상 체험 프로그램과 야외 활동이 포함된 행사",
+                    }
+                ],
+            },
+            ensure_ascii=False,
+        ),
+    },
+    {
+        "role": "assistant",
+        "content": "주말에 온 가족이 즐길 수 있는 과학 체험전을 추천드려요. 8월 1일부터 15일까지 서울 과학관에서 열리고, 다양한 야외 프로그램이 마련되어 있어요.",
+    },
+]
+
+
+EVENT_SEARCH_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "search_events",
+            "description": "사용자의 질의에 맞춰 행사 데이터를 검색합니다.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "사용자의 자연어 질의. 핵심 요구를 그대로 전달하세요.",
+                    },
+                    "top_k": {
+                        "type": "integer",
+                        "description": "검색 결과 개수 (1~5)",
+                        "minimum": 1,
+                        "maximum": 5,
+                        "default": 3,
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    }
+]
+
+
+async def run_assistant_with_tools(raw_message: str, language: str) -> Dict[str, Any]:
+    messages: List[Dict[str, Any]] = [{"role": "system", "content": SYSTEM_PROMPT}] + FEWSHOT_MESSAGES + [
+        {"role": "user", "content": raw_message}
+    ]
+
+    used_tool = False
+    recommended_event: Dict[str, Any] = {}
+    last_tool_results: List[Dict[str, Any]] = []
+
+    for _ in range(3):
+        response = await openai_client.chat.completions.create(
+            model=DEFAULT_MODEL,
+            messages=messages,
+            tools=EVENT_SEARCH_TOOLS,
+            temperature=0.6,
+        )
+        choice = response.choices[0]
+        message = choice.message
+
+        tool_calls = getattr(message, "tool_calls", None)
+        if tool_calls:
+            used_tool = True
+            for call in tool_calls:
+                if call.type != "function" or call.function.name != "search_events":
+                    continue
+
+                args = {}
+                if call.function.arguments:
+                    try:
+                        args = json.loads(call.function.arguments)
+                    except json.JSONDecodeError:
+                        args = {"query": raw_message}
+
+                query = args.get("query") or raw_message
+                top_k = args.get("top_k", 3)
+                if not isinstance(top_k, int):
+                    top_k = 3
+                top_k = max(1, min(5, top_k))
+
+                results = await event_retriever.search(query, top_k=top_k)
+                formatted_results: List[Dict[str, Any]] = []
+                for item in results:
+                    event = item["event"]
+                    score = item["score"]
+                    formatted_results.append(
+                        {
+                            "event_id": event.get("id"),
+                            "title": event.get("title"),
+                            "title_en": event.get("title_en"),
+                            "period": event.get("period") or event.get("date") or event.get("datetime"),
+                            "period_en": event.get("period_en"),
+                            "place": event.get("place") or event.get("location"),
+                            "place_en": event.get("place_en"),
+                            "host": event.get("host") or event.get("organization"),
+                            "host_en": event.get("host_en"),
+                            "category": event.get("category"),
+                            "state": event.get("state"),
+                            "url": event.get("url"),
+                            "score": round(float(score), 4),
+                            "context": item.get("document"),
+                            "vector_mode": item.get("vector_mode"),
+                        }
+                    )
+                    if not recommended_event:
+                        recommended_event = prepare_event_for_language(event, language, score)
+
+                last_tool_results = formatted_results
+
+                tool_payload = {
+                    "query": query,
+                    "results": formatted_results,
+                }
+
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": call.id,
+                        "content": json.dumps(tool_payload, ensure_ascii=False),
+                    }
+                )
+            continue
+
+        final_text = message.content or ""
+        return {
+            "text": final_text,
+            "used_tool": used_tool,
+            "recommended_event": recommended_event,
+            "tool_results": last_tool_results,
+        }
+
+    return {
+        "text": "요청을 처리하는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        "used_tool": used_tool,
+        "recommended_event": recommended_event,
+        "tool_results": last_tool_results,
+    }
+
 
 async def handle_chat_logic(raw_message: str, user_id: str = "default_user") -> dict:
-    """채팅 API 공용 로직 (중복 추천 방지 포함)"""
     if not raw_message:
+        text = "메시지를 입력해주세요."
         return {
             "response": {
+                "intent": "chat",
                 "keywords": [],
                 "recommended_event": {},
-                "reason": {
-                    "ko": "메시지를 입력해주세요.",
-                    "en": "Please enter a message to begin."
-                }
+                "reason": build_reason_payload(text, "ko"),
             }
         }
 
     language = detect_language(raw_message)
-    input_for_keyword = raw_message
 
-    # 영어 입력이면 한국어로 번역 후 키워드 추출
-    if language == "en":
-        input_for_keyword = await translate_en_to_ko(raw_message)
-
-    try:
-        intent_info = await analyze_user_intent(input_for_keyword)
-    except Exception:
-        intent_info = {"intent": "event_search", "keywords": []}
-
-    intent = intent_info.get("intent", "event_search")
-    
-    # event_search 인텐트일 때 키워드 추출
-    if intent == "event_search":
-        print("@@@#")
-        keywords = intent_info.get("keywords") or []
-        print(keywords)
-        print(intent_info)
-        
-        # 항상 확장 키워드 추출
-        expanded_keywords = await extract_keywords_with_openai(input_for_keyword)
-        
-        # 기존 keywords와 합치고 중복 제거
-        keywords = list(dict.fromkeys(keywords + expanded_keywords))
-
-
-
-    try:
-        intent_info = await analyze_user_intent(raw_message)
-    except Exception:
-        intent_info = {"intent": "event_search", "keywords": []}
-
-    intent = intent_info.get("intent", "event_search")
-
-    if intent != "event_search":
-        reason = build_non_event_reason(intent, language)
-        reason = align_reason_language(reason, language)
+    if not openai_client:
+        message = (
+            "OpenAI API 키가 설정되어 있지 않아 대화 기능을 사용할 수 없습니다. "
+            "환경 변수를 확인한 뒤 다시 시도해주세요."
+        )
         return {
             "response": {
-                "intent": intent,
-                "keywords": intent_info.get("keywords", []),
-                "recommended_event": {},
-                "reason": reason,
-            }
-        }
-
-    try:
-        keywords = intent_info.get("keywords") or []
-        if keywords:
-            # 중복 제거 및 정리
-            seen = set()
-            cleaned = []
-            for kw in keywords:
-                key = kw.lower()
-                if key not in seen:
-                    cleaned.append(kw)
-                    seen.add(key)
-            keywords = cleaned
-        else:
-            keywords = await extract_keywords_with_openai(raw_message)
-
-        # 이미 추천된 이벤트 제외하고 점수 계산
-        matching: List[Tuple[dict, int]] = []
-        for ev in events_data:
-            if ev['id'] in user_recommended_events.get(user_id, set()):
-                continue  # 이미 추천된 이벤트 제외
-            s = score_event(ev, keywords)
-            if s > 0:
-                matching.append((ev, s))
-
-        if not matching:
-            reason = build_reason(None, keywords)
-            reason = align_reason_language(reason, language)
-            return {
-                "response": {
-                    "intent": intent,
-                    "keywords": keywords,
-                    "recommended_event": {},
-                    "reason": reason,
-                }
-            }
-            
-        # 최고 점수 이벤트 선택
-       
-        best_event, _ = max(matching, key=lambda x: x[1])
-
-        state_map = {
-            "진행중": "Ongoing",
-            "종료": "Ended",
-            "예정": "Upcoming",
-            "알수없음": "Unknown"
-        }
-
-        if language == "en":
-            best_event = {
-                **best_event,
-                "title": best_event.get("title_en") or best_event.get("title"),
-                "host": best_event.get("host_en") or best_event.get("host"),
-                "place": best_event.get("place_en") or best_event.get("place"),
-                "period": best_event.get("period_en") or best_event.get("period"),
-                "state": state_map.get(best_event.get("state"), best_event.get("state"))
-            }
-
-
-
-        # 추천 이벤트 기록
-        user_recommended_events.setdefault(user_id, set()).add(best_event['id'])
-
-        reason = build_reason(best_event, keywords)
-        reason = align_reason_language(reason, language)
-
-        # 종료 이벤트 안내 추가
-        if best_event.get("state") == "종료":
-            reason["ko"] += " 참고로, 이 행사는 이미 종료되었습니다."
-            reason["en"] += " Note that this event has already ended."
-
-        return {
-            "response": {
-                "intent": intent,
-                "keywords": keywords,
-                "recommended_event": best_event,
-                "reason": reason,
-            }
-        }
-
-    except Exception as e:
-        # 에러 시 일관된 JSON 반환
-        reason = {
-            "ko": f"오류가 발생했습니다: {str(e)}",
-            "en": f"An error occurred: {str(e)}"
-        }
-        reason = align_reason_language(reason, language)
-        return {
-            "response": {
-                "intent": intent,
+                "intent": "chat",
                 "keywords": [],
                 "recommended_event": {},
-                "reason": reason,
+                "reason": build_reason_payload(message, language),
             }
         }
+
+    try:
+        assistant_output = await run_assistant_with_tools(raw_message, language)
+    except Exception as exc:
+        error_message = f"요청을 처리하는 중 오류가 발생했습니다: {exc}"
+        return {
+            "response": {
+                "intent": "chat",
+                "keywords": [],
+                "recommended_event": {},
+                "reason": build_reason_payload(error_message, language),
+            }
+        }
+
+    text = assistant_output.get("text", "")
+    used_tool = assistant_output.get("used_tool", False)
+    recommended_event = assistant_output.get("recommended_event") if used_tool else {}
+
+    response_payload: Dict[str, Any] = {
+        "intent": "event_recommendation" if used_tool else "chat",
+        "keywords": [],
+        "recommended_event": recommended_event or {},
+        "reason": build_reason_payload(text, language),
+    }
+
+    tool_results = assistant_output.get("tool_results")
+    if used_tool and tool_results:
+        response_payload["alternatives"] = tool_results
+
+    return {"response": response_payload}
 
 
 # =========================
@@ -728,10 +664,8 @@ async def handle_chat_logic(raw_message: str, user_id: str = "default_user") -> 
 # =========================
 @app.on_event("startup")
 async def load_events_data():
-    """서버 시작 시 events.json 및 번역 파일 로딩"""
     global events_data
-    
-    # 1. 원본 데이터 로드
+
     try:
         async with aiofiles.open(EVENTS_JSON_PATH, mode="r", encoding="utf-8") as f:
             content = await f.read()
@@ -742,12 +676,11 @@ async def load_events_data():
                 raw_events = data
             else:
                 raw_events = []
-        
-        # 각 이벤트에 고유 ID 부여 (인덱스 사용)
+
         events_data = [{**event, "id": i} for i, event in enumerate(raw_events)]
-        print(f"[startup] Loaded {len(events_data)} events from {EVENTS_JSON_PATH}")
         for ev in events_data:
             ev["state"] = compute_event_state(ev.get("period") or "")
+        print(f"[startup] Loaded {len(events_data)} events from {EVENTS_JSON_PATH}")
     except FileNotFoundError:
         events_data = []
         print(f"[startup] Could not find events.json: {EVENTS_JSON_PATH}")
@@ -755,32 +688,33 @@ async def load_events_data():
         events_data = []
         print(f"[startup] Error decoding events.json: {EVENTS_JSON_PATH}")
 
-    # 2. 번역 데이터 로드 및 병합
-    if not os.path.exists(EVENTS_EN_JSON_PATH):
-        print(f"[startup] Translated events file not found: {EVENTS_EN_JSON_PATH}")
-        print("[startup] You can generate it by calling the /api/translate-events endpoint.")
-    else:
+    if os.path.exists(EVENTS_EN_JSON_PATH):
         try:
             async with aiofiles.open(EVENTS_EN_JSON_PATH, mode="r", encoding="utf-8") as f:
                 translated_events_list = json.loads(await f.read())
-                
-                # id를 키로 하는 딕셔너리로 변환하여 빠른 조회를 위함
-                translated_map = {item['id']: item for item in translated_events_list}
-                
+                translated_map = {item["id"]: item for item in translated_events_list}
                 merged_count = 0
                 for event in events_data:
-                    if event['id'] in translated_map:
-                        event.update(translated_map[event['id']])
+                    if event["id"] in translated_map:
+                        event.update(translated_map[event["id"]])
                         merged_count += 1
                 print(f"[startup] Merged {merged_count} translated events from {EVENTS_EN_JSON_PATH}")
-
         except json.JSONDecodeError:
             print(f"[startup] Error decoding {EVENTS_EN_JSON_PATH}. Skipping merge.")
-        except Exception as e:
-            print(f"[startup] An error occurred while merging translated data: {e}")
+        except Exception as exc:
+            print(f"[startup] An error occurred while merging translated data: {exc}")
+    else:
+        print(f"[startup] Translated events file not found: {EVENTS_EN_JSON_PATH}")
 
-    if not OPENAI_API_KEY:
-        print("[warn] OPENAI_API_KEY is not set. Keyword extraction and translation will use fallback logic.")
+    event_retriever.refresh(events_data)
+
+    if openai_client:
+        try:
+            await event_retriever.ensure_embeddings()
+        except Exception as exc:
+            print(f"[startup] Embedding pre-computation failed: {exc}")
+    else:
+        print("[warn] OPENAI_API_KEY is not set. The assistant will operate in fallback mode.")
 
 
 # =========================
@@ -788,25 +722,16 @@ async def load_events_data():
 # =========================
 @app.get("/", include_in_schema=False)
 async def root():
-    # 기본 진입은 /chat 로 리다이렉트
     return RedirectResponse(url="/chat", status_code=302)
 
 
 @app.get("/chat", response_class=HTMLResponse)
 async def chat_page(request: Request):
-    """
-    채팅 전용 페이지 (templates/chat.html 렌더링)
-    프론트엔드는 /api/chat 을 호출하도록 구성 권장.
-    """
     return templates.TemplateResponse("chat.html", {"request": request})
 
 
 @app.get("/feed", response_class=HTMLResponse)
 async def feed_page(request: Request):
-    """
-    피드 전용 페이지 (templates/feed.html 렌더링)
-    프론트엔드는 /api/events 를 호출하도록 구성 권장.
-    """
     return templates.TemplateResponse("feed.html", {"request": request})
 
 
@@ -815,10 +740,6 @@ async def feed_page(request: Request):
 # =========================
 @app.post("/api/chat")
 async def api_chat(request: Request):
-    """
-    채팅 API (POST /api/chat)
-    Body: { "message": "..." }
-    """
     data = await request.json()
     raw_message = (data.get("message") or "").strip()
     return await handle_chat_logic(raw_message)
@@ -826,8 +747,9 @@ async def api_chat(request: Request):
 
 @app.get("/api/events")
 async def api_events():
-    """행사 목록 API (GET /api/events)"""
     return {"events": events_data}
+
+
 @app.post("/api/translate-events")
 async def api_translate_events():
     if not openai_client:
@@ -836,44 +758,39 @@ async def api_translate_events():
     print("Starting event translation...")
 
     translated_events = []
-
-    batch_size = 10  # 한 번에 10개씩 번역
+    batch_size = 10
     for i in range(0, len(events_data), batch_size):
-        batch = events_data[i:i+batch_size]
+        batch = events_data[i:i + batch_size]
         tasks = [translate_event_with_openai(event) for event in batch]
         results = await asyncio.gather(*tasks)
-
-        # 성공한 것만 추가
         translated_events.extend([r for r in results if r and r.get("id") is not None])
+        print(f"Translated batch {i // batch_size + 1} ({len(translated_events)}/{len(events_data)})")
+        await asyncio.sleep(1.5)
 
-        print(f"Translated batch {i//batch_size + 1} ({len(translated_events)}/{len(events_data)})")
-        await asyncio.sleep(1.5)  # rate limit 방지 대기
-
-    # 저장
     async with aiofiles.open(EVENTS_EN_JSON_PATH, mode="w", encoding="utf-8") as f:
         await f.write(json.dumps(translated_events, indent=2, ensure_ascii=False))
 
     print(f"Successfully translated and saved {len(translated_events)} events.")
     return {"message": f"Successfully translated {len(translated_events)} events.", "path": EVENTS_EN_JSON_PATH}
 
+
 # =========================
 # Legacy aliases (하위호환)
 # =========================
 @app.post("/chat")
 async def legacy_chat(request: Request):
-    """이전 프런트가 POST /chat 을 호출하던 경우 지원"""
     return await api_chat(request)
 
 
 @app.get("/events")
 async def legacy_events():
-    """이전 프런트가 GET /events 를 호출하던 경우 지원"""
     return await api_events()
 
 
 @app.get("/feed.html", include_in_schema=False)
 async def legacy_feed_html():
     return RedirectResponse(url="/feed", status_code=301)
+
 
 @app.get("/chat.html", include_in_schema=False)
 async def legacy_chat_html():
