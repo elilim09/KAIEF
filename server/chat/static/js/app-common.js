@@ -11,6 +11,12 @@ export const translations = {
     navChat: "AI 챗봇",
     navFeed: "행사 피드",
     languageAria: "언어 전환",
+    fabChatLabel: "AI 챗봇",
+    fabChatAria: "AI 챗봇 페이지로 이동",
+    fabFeedLabel: "행사 피드",
+    fabFeedAria: "행사 피드 페이지로 이동",
+    fabLanguageLabel: "한/영",
+    fabLanguageAria: "언어 전환",
     documentTitle: "KAIEF – 대한민국 행사 AI 파인더",
     assistantBadge: "AI 어시스턴트",
     assistantIntro: "안녕하세요! 🎉<br/>대한민국의 주요 문화·예술 행사를 실시간으로 찾아드립니다. 일정이나 관심사를 알려주세요!",
@@ -66,6 +72,12 @@ export const translations = {
     navChat: "AI Chatbot",
     navFeed: "Event feed",
     languageAria: "Switch language",
+    fabChatLabel: "Chatbot",
+    fabChatAria: "Go to AI chatbot page",
+    fabFeedLabel: "Event feed",
+    fabFeedAria: "Go to event feed page",
+    fabLanguageLabel: "EN/KR",
+    fabLanguageAria: "Toggle language",
     documentTitle: "KAIEF – Korea Event AI Finder",
     assistantBadge: "AI Assistant",
     assistantIntro: "Hello! 🎉<br/>I surface cultural and arts events across Korea in real time. Tell me about your schedule or interests!",
@@ -174,6 +186,26 @@ function applyI18n() {
   if (paletteBtn) paletteBtn.setAttribute('aria-label', t.paletteAria);
   const themeToggle = document.getElementById('themeToggle');
   if (themeToggle) themeToggle.setAttribute('aria-label', t.themeAria);
+  const chatFab = document.querySelector('.mini-fab[data-action="go-chat"]');
+  if (chatFab) {
+    chatFab.setAttribute('aria-label', t.fabChatAria || t.navChat);
+    chatFab.setAttribute('title', t.fabChatAria || t.navChat);
+  }
+  const feedFab = document.querySelector('.mini-fab[data-action="go-feed"]');
+  if (feedFab) {
+    feedFab.setAttribute('aria-label', t.fabFeedAria || t.navFeed);
+    feedFab.setAttribute('title', t.fabFeedAria || t.navFeed);
+  }
+  const languageFab = document.querySelector('.mini-fab[data-action="toggle-language"]');
+  if (languageFab) {
+    languageFab.setAttribute('aria-label', t.fabLanguageAria || t.languageAria);
+    languageFab.setAttribute('title', t.fabLanguageAria || t.languageAria);
+  }
+  const moreBtn = document.getElementById('moreBtn');
+  if (moreBtn) {
+    moreBtn.setAttribute('aria-label', t.moreAria);
+    moreBtn.setAttribute('title', t.moreAria);
+  }
 }
 
 export function handleSurfaceScroll(target) {

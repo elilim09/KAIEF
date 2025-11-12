@@ -241,7 +241,10 @@ body {
 .retry-button:focus-visible { outline: 3px solid color-mix(in oklab, var(--md-sys-color-primary) 45%, transparent); outline-offset: 2px; }
 
 .feed-floating { position:absolute; left:0; right:0; bottom:0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px)); display:flex; flex-direction:column; gap:12px; pointer-events:none; z-index:25; }
+.feed-search-row { display:flex; justify-content:flex-end; align-items:center; gap:12px; pointer-events:none; }
+.feed-search-row > * { pointer-events:auto; }
 .feed-search { pointer-events:auto; display:flex; align-items:center; gap:8px; padding: 10px 14px; border-radius: var(--shape-corner-xl); border:1px solid var(--md-sys-color-outline-variant); background: color-mix(in oklab, var(--md-sys-color-surface-container) 85%, transparent); box-shadow: var(--elevation-2); transition: border-color var(--dur-quick) var(--easing-standard), box-shadow var(--dur-quick) var(--easing-standard), transform var(--dur-quick) var(--easing-standard); }
+.feed-search.feed-search-compact { width: min(100%, 420px); margin-left:auto; }
 .feed-search-icon { width: 18px; height: 18px; color: color-mix(in oklab, var(--md-sys-color-on-surface) 65%, transparent); opacity: 0.75; pointer-events: none; }
 .feed-search:focus-within { border-color: var(--md-sys-color-primary); box-shadow: var(--elevation-4); transform: translateY(-1px); }
 .feed-search input { flex:1; background: transparent; border:0; outline:0; font-size:14px; color: var(--md-sys-color-on-surface); min-width: 0; }

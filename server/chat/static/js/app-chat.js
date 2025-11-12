@@ -1,4 +1,4 @@
-import { initCommonUI, translations, getLang, handleSurfaceScroll } from './app-common.js';
+import { initCommonUI, translations, getLang, handleSurfaceScroll, setLang } from './app-common.js';
 
 let currentLang = getLang();
 const chatList = document.getElementById('chatList');
@@ -221,6 +221,21 @@ document.addEventListener('click', (e) => {
   if (dialOpen && !moreWrap.contains(e.target)) toggleDial(false);
 });
 
+if (fabDial) {
+  fabDial.addEventListener('click', (e) => {
+    const btn = e.target.closest('.mini-fab');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    if (action === 'go-chat' || action === 'go-feed') {
+      const href = btn.dataset.href;
+      if (href) window.location.href = href;
+    } else if (action === 'toggle-language') {
+      setLang(currentLang === 'ko' ? 'en' : 'ko');
+    }
+    toggleDial(false);
+  });
+}
+
 /* ===== 언어 적용(인트로/힌트/플레이스홀더 등) ===== */
 function updateIntroSection() {
   const t = translations[currentLang];
@@ -297,6 +312,7 @@ window.addEventListener('kaief:lang', (ev) => {
 
 updateIntroSection();
 renderChips();
+
 updateSend();
 updateCharCounter();
 handleSurfaceScroll(chatList);

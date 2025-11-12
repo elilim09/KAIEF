@@ -37,15 +37,6 @@
         </div>
       </div>
 
-      <div class="app-controls">
-        <!-- 페이지 링크 기반 네비게이션 -->
-        <div class="tab-group" role="tablist">
-          <a id="navChat" href="{{ url_for('chat_page') }}" class="tab active" role="tab" aria-selected="true" aria-current="page" data-i18n="navChat">AI 챗봇</a>
-          <a id="navFeed" href="{{ url_for('feed_page') }}" class="tab" role="tab" aria-selected="false" data-i18n="navFeed">행사 피드</a>
-        </div>
-        <button id="languageToggle" type="button" class="chip language-toggle" aria-label="언어 전환">EN</button>
-      </div>
-
       <div id="brandPanel" class="popover">
         <div class="text-sm font-semibold mb-2">브랜드 컬러 (씨앗) 선택</div>
         <div class="flex flex-wrap gap-2 mb-3">
@@ -91,17 +82,17 @@
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
             </button>
             <div id="fabDial" class="fab-dial" aria-label="빠른 작업 메뉴">
-              <button class="mini-fab" data-action="attach-file" title="파일 첨부" aria-label="파일 첨부">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-8.49 8.49a5 5 0 01-7.07-7.07l8.49-8.49a3 3 0 114.24 4.24l-8.49 8.49a1 1 0 11-1.41-1.41l8.49-8.49"/></svg>
-                <span class="fab-label">파일</span>
+              <button class="mini-fab" data-action="go-chat" data-href="{{ url_for('chat_page') }}" title="AI 챗봇 페이지로 이동" aria-label="AI 챗봇 페이지로 이동">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-5 4V7a2 2 0 0 1 2-2z"/></svg>
+                <span class="fab-label" data-i18n="fabChatLabel">AI 챗봇</span>
               </button>
-              <button class="mini-fab" data-action="attach-photo" title="사진 첨부" aria-label="사진 첨부">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16v10H4z"/><path d="M9 13l2-2 2 2 3-3 3 3"/></svg>
-                <span class="fab-label">사진</span>
+              <button class="mini-fab" data-action="go-feed" data-href="{{ url_for('feed_page') }}" title="행사 피드 페이지로 이동" aria-label="행사 피드 페이지로 이동">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h6M7 16h8"/></svg>
+                <span class="fab-label" data-i18n="fabFeedLabel">행사 피드</span>
               </button>
-              <button class="mini-fab" data-action="share-location" title="현재 위치 추가" aria-label="현재 위치 추가">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 2v2m0 12v6m10-10h-2M4 12H2m14.24 5.76l-1.42-1.42M7.17 5.17L5.76 3.76"/></svg>
-                <span class="fab-label">위치</span>
+              <button class="mini-fab" data-action="toggle-language" title="언어 전환" aria-label="언어 전환">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14.5 14.5 0 0 1 4 9 14.5 14.5 0 0 1-4 9 14.5 14.5 0 0 1-4-9 14.5 14.5 0 0 1 4-9z"/></svg>
+                <span class="fab-label" data-i18n="fabLanguageLabel">한/영</span>
               </button>
             </div>
           </div>
