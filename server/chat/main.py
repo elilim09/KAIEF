@@ -29,6 +29,7 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 # =========================
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 EVENTS_JSON_PATH = os.path.join(BASE_DIR, "events.json")
+EVENTS_EN_JSON_PATH = os.path.join(BASE_DIR, "events_en.json")
 
 openai_client: Optional[AsyncOpenAI] = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
@@ -36,6 +37,7 @@ openai_client: Optional[AsyncOpenAI] = AsyncOpenAI(api_key=OPENAI_API_KEY) if OP
 # In-memory cache
 # =========================
 events_data: List[dict] = []
+events_data_en: List[dict] = []
 
 # 세션별 대화 히스토리 저장용 메모리
 conversation_memory: Dict[str, List[Dict[str, str]]] = {}
@@ -65,8 +67,10 @@ def compute_event_state(period: str) -> str:
 # =========================
 @app.on_event("startup")
 async def load_events_data():
-    global events_data
+    """⚡ 한국어 / 영어 events 파일 모두 로드"""
+    global events_data, events_data_en
     try:
+        # --- 한국어 파일 ---
         async with aiofiles.open(EVENTS_JSON_PATH, "r", encoding="utf-8") as f:
             data = json.loads(await f.read())
             if isinstance(data, list):
@@ -78,10 +82,28 @@ async def load_events_data():
         events_data = [{**event, "id": i} for i, event in enumerate(raw_events)]
         for e in events_data:
             e["state"] = compute_event_state(e.get("period") or "")
-        print(f"[startup] Loaded {len(events_data)} events.")
+
+        # --- 영어 파일 (있을 경우) ---
+        if os.path.exists(EVENTS_EN_JSON_PATH):
+            async with aiofiles.open(EVENTS_EN_JSON_PATH, "r", encoding="utf-8") as f_en:
+                data_en = json.loads(await f_en.read())
+                if isinstance(data_en, list):
+                    raw_events_en = data_en
+                elif isinstance(data_en, dict) and "events" in data_en:
+                    raw_events_en = data_en["events"]
+                else:
+                    raw_events_en = []
+            events_data_en = [{**event, "id": i} for i, event in enumerate(raw_events_en)]
+            for e in events_data_en:
+                e["state"] = e.get("state") or "Unknown"
+        else:
+            events_data_en = []
+
+        print(f"[startup] Loaded {len(events_data)} Korean events, {len(events_data_en)} English events.")
     except Exception as e:
         print(f"[startup] Error loading events: {e}")
         events_data = []
+        events_data_en = []
 
 
 # =========================
@@ -297,8 +319,12 @@ async def api_chat(request: Request):
 
 @app.get("/events")
 async def api_events():
-    print(events_data[1])
     return {"events": events_data}
+
+@app.get("/events_en")  # ⚡ 추가: 영어 버전
+async def api_events_en():
+    """영어 이벤트 반환"""
+    return {"events": events_data_en if events_data_en else events_data}
 
 
 # =========================

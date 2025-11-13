@@ -244,8 +244,14 @@ function createFeedCard(ev) {
   if (data.status) metaParts.push(`📌 ${data.status}`);
   if (data.cost) metaParts.push(`💰 ${data.cost}`);
 
+  // ✅ source 추가 부분
+  const sourceText = ev.source ? `📰 ${escapeHTML(ev.source)}` : '';
+
   const footerSegments = [];
-  if (metaParts.length) footerSegments.push(`<span>${metaParts.join(' · ')}</span>`);
+  if (metaParts.length || sourceText) {
+    footerSegments.push(`<span>${[...metaParts, sourceText].filter(Boolean).join(' · ')}</span>`);
+  }
+
   if (data.link) footerSegments.push(`<a href="${data.link}" target="_blank" rel="noopener">${t.actions.viewDetail}</a>`);
   const footerHTML = footerSegments.length ? `<div class="feed-footer">${footerSegments.join('')}</div>` : '';
 
@@ -257,6 +263,7 @@ function createFeedCard(ev) {
 
   return card;
 }
+
 
 function parseEventDateValue(value) {
   if (!value) return null;
@@ -434,7 +441,9 @@ async function ensureFeed(forceReload = false) {
   feedMessage.textContent = t.feedLoading;
   showFeedSkeleton();
   try {
-    const res = await fetch('/events');
+    // ✅ 언어별 events 파일 로드
+    const endpoint = currentLang === 'en' ? '/events_en' : '/events';
+    const res = await fetch(endpoint);
     const data = await res.json();
     cachedEvents = Array.isArray(data.events) ? data.events : [];
     feedLoaded = true;
@@ -453,6 +462,7 @@ async function ensureFeed(forceReload = false) {
     updateFloatingHeight();
   }
 }
+
 
 /* ===== 스크롤/언어 이벤트 ===== */
 if (feedList) {
@@ -505,10 +515,10 @@ window.addEventListener('kaief:lang', (ev) => {
   renderSortControl();
   updateSearchLocalization();
   updateSearchUI();
-  if (feedLoaded) renderFeed();
-  else { feedMessage.textContent = ''; feedFootnote.textContent = ''; }
+  ensureFeed(true); // ✅ 언어 변경 시 다시 불러오기
   updateFloatingHeight();
 });
+
 
 /* 초기화 */
 renderFeedFilters();
