@@ -97,8 +97,9 @@ function applySearchTerm(rawValue, options = {}) {
 function filterEventsBySearchTerm(events) {
   if (!activeSearchTerm) return events.slice();
   const term = activeSearchTerm;
+
   return events.filter((ev) => {
-    const haystack = [
+    const haystackParts = [
       ev?.title,
       ev?.description,
       ev?.deep_data,
@@ -107,11 +108,29 @@ function filterEventsBySearchTerm(events) {
       ev?.organization,
       ev?.category,
       ev?.place,
-      ev?.location
-    ].map((part) => String(part || '').toLowerCase()).join(' ');
+      ev?.location,
+    ];
+
+    // 🔹 영어 모드일 때 영어 필드도 검색에 포함
+    if (currentLang === 'en') {
+      haystackParts.push(
+        ev?.title_en,
+        ev?.place_en,
+        ev?.host_en,
+        ev?.organization_en,
+        ev?.category_en,
+        ev?.overview_en
+      );
+    }
+
+    const haystack = haystackParts
+      .map((part) => String(part || '').toLowerCase())
+      .join(' ');
+
     return haystack.includes(term);
   });
 }
+
 
 function toggleScrollTopButton(scrollTop) {
   if (!feedScrollTopBtn) return;
