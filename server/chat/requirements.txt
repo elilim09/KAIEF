@@ -1,5 +1,9 @@
 fastapi
-uvicorn
-jinja2
-aiofiles
+uvicorn[standard]
 openai
+python-dotenv
+aiofiles
+jinja2
+python-multipart
+faiss-cpu
+numpy
