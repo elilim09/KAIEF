@@ -17,7 +17,7 @@
   >
 
   <!-- 🔧 mixed-content 방지를 위해 절대 URL(http://...) 대신 url_for 사용 -->
-  <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}" />
+  <link rel="stylesheet" href="/static/css/style.css" />
 </head>
 <body>
   <div class="app">
@@ -171,8 +171,8 @@
   </div>
 
   <!-- 🔧 JS도 모두 url_for로, http:// 절대 URL 사용 금지 -->
-  <script type="module" src="{{ url_for('static', path='js/app-common.js') }}"></script>
-  <script type="module" src="{{ url_for('static', path='js/app-chat.js') }}"></script>
+  <script type="module" src="/static/js/app-common.js"></script>
+  <script type="module" src="/static/js/app-chat.js"></script>
 
   <script>
     (function updateDynamicViewHeight() {

@@ -20,10 +20,8 @@ from pathlib import Path
 app = FastAPI()
 load_dotenv()
 
-# ★ main.py가 있는 server/chat 폴더 기준 경로
-BASE_DIR = Path(__file__).resolve().parent
-STATIC_DIR = BASE_DIR / "static"
-TEMPLATES_DIR = BASE_DIR / "templates"
+STATIC_DIR = "static"
+TEMPLATES_DIR = "templates"
 
 # 정적 파일 / 템플릿 등록
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -33,9 +31,9 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 # Config
 # =========================
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-EVENTS_JSON_PATH = BASE_DIR / "events.json"
-EVENTS_EN_JSON_PATH = BASE_DIR / "events_en.json"
-EMBEDDINGS_CACHE_PATH = BASE_DIR / "embeddings_cache.json"
+EVENTS_JSON_PATH = Path("events.json")
+EVENTS_EN_JSON_PATH = Path("events_en.json")
+EMBEDDINGS_CACHE_PATH = Path("embeddings_cache.json")
 
 openai_client: Optional[AsyncOpenAI] = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 

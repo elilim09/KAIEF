@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght,GRAD,slnt,YOPQ@8..144,300..900,-200..150,-12..0,25..135&family=Noto+Sans+KR:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}" />
+  <link rel="stylesheet" href="/static/css/style.css" />
   <style>
     .feed-sort {
       display: flex;
@@ -133,8 +133,8 @@
     </section>
   </div>
 
-  <script type="module" src="{{ url_for('static', path='js/app-common.js') }}"></script>
-  <script type="module" src="{{ url_for('static', path='js/app-feed.js') }}"></script>
+  <script type="module" src="/static/js/app-common.js"></script>
+  <script type="module" src="/static/js/app-feed.js"></script>
   <script>
     (function updateDynamicViewHeight() {
       const root = document.documentElement;
