@@ -1,16 +1,16 @@
 import json
 
-from .pages.seongnam import scrape_seongnam_events_page
-from .pages.snyouth import scrape_snyouth_events_page
-from .pages.snart import scrape_snart_events_page
-from .pages.mpark import scrape_mpark_events_page
-from .pages.ppark import scrape_ppark_events_page
-from .pages.koreajobworld import scrape_koreajobworld_events_page
-from .pages.seongnamculture import scrape_seongnamculture_events_page
-from .pages.pangyomeseum import scrape_pangyomuseum_events_page
-from .pages.pangyowelfare import scrape_pangyowelfare_events_page
-from .pages.pangyonoin import scrape_pangyonoin_events_page
-from .pages.culture import get_exhibition_data, xml_to_dict
+from pages.seongnam import scrape_seongnam_events_page
+from pages.snyouth import scrape_snyouth_events_page
+from pages.snart import scrape_snart_events_page
+from pages.mpark import scrape_mpark_events_page
+from pages.ppark import scrape_ppark_events_page
+from pages.koreajobworld import scrape_koreajobworld_events_page
+from pages.seongnamculture import scrape_seongnamculture_events_page
+from pages.pangyomeseum import scrape_pangyomuseum_events_page
+from pages.pangyowelfare import scrape_pangyowelfare_events_page
+from pages.pangyonoin import scrape_pangyonoin_events_page
+from pages.culture import get_exhibition_data, xml_to_dict
 
 def scrape_culture_events_page():
     print("culture.go.kr API를 스크래핑하는 중...")

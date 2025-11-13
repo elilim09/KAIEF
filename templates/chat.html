@@ -4,11 +4,19 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>KAIEF – 대한민국 행사 AI 파인더</title>
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Material 3 Expressive-friendly fonts -->
+
+  <!-- Material 3 Expressive-friendly fonts (HTTPS로만 요청) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght,GRAD,slnt,YOPQ@8..144,300..900,-200..150,-12..0,25..135&family=Noto+Sans+KR:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght,GRAD,slnt,YOPQ@8..144,300..900,-200..150,-12..0,25..135&family=Noto+Sans+KR:wght@300;400;500;700;800;900&display=swap"
+    rel="stylesheet"
+  >
+
+  <!-- 🔧 mixed-content 방지를 위해 절대 URL(http://...) 대신 url_for 사용 -->
   <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}" />
 </head>
 <body>
@@ -28,11 +36,22 @@
         </div>
         <div class="flex items-center gap-2">
           <button id="paletteBtn" class="icon-button" aria-label="브랜드 색 설정">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22a5 5 0 01-5-5 7 7 0 117 7z"/><circle cx="6.5" cy="11.5" r="1.5"/><circle cx="9.5" cy="7.5" r="1.5"/><circle cx="14.5" cy="7.5" r="1.5"/><circle cx="17.5" cy="11.5" r="1.5"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22a5 5 0 01-5-5 7 7 0 117 7z"/>
+              <circle cx="6.5" cy="11.5" r="1.5"/>
+              <circle cx="9.5" cy="7.5" r="1.5"/>
+              <circle cx="14.5" cy="7.5" r="1.5"/>
+              <circle cx="17.5" cy="11.5" r="1.5"/>
+            </svg>
           </button>
           <button id="themeToggle" class="icon-button theme-toggle" aria-label="테마 전환">
-            <svg id="sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-            <svg id="moon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/></svg>
+            <svg id="sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+            </svg>
+            <svg id="moon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+              <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/>
+            </svg>
           </button>
         </div>
       </div>
@@ -47,8 +66,18 @@
         </div>
         <label class="text-sm block mb-2">사용자 지정 색상</label>
         <div class="flex items-center gap-3">
-          <input id="customSeed" type="color" value="#6366F1" class="w-10 h-10 rounded-[12px] border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container)]"/>
-          <input id="customSeedHex" type="text" value="#6366F1" class="flex-1 text-sm px-2 py-2 rounded-[10px] border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-low)]"/>
+          <input
+            id="customSeed"
+            type="color"
+            value="#6366F1"
+            class="w-10 h-10 rounded-[12px] border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container)]"
+          />
+          <input
+            id="customSeedHex"
+            type="text"
+            value="#6366F1"
+            class="flex-1 text-sm px-2 py-2 rounded-[10px] border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-low)]"
+          />
           <button id="applySeed" class="chip">적용</button>
         </div>
       </div>
@@ -63,13 +92,17 @@
               <div class="w-6 h-6 rounded-full" style="background:linear-gradient(90deg,#34D399,#06B6D4)"></div>
               <span id="introBadge" class="text-xs opacity-70 font-medium">AI 어시스턴트</span>
             </div>
-            <div id="introText" class="leading-6 text-[15px]">안녕하세요! 🎉<br/>대한민국의 다양한 행사와 이벤트 정보를 찾아드립니다.</div>
+            <div id="introText" class="leading-6 text-[15px]">
+              안녕하세요! 🎉<br/>대한민국의 다양한 행사와 이벤트 정보를 찾아드립니다.
+            </div>
           </div>
         </div>
       </div>
 
       <button id="scrollToBottom" class="scroll-to-bottom" aria-label="최신 메시지로 이동">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m7-7l-7 7-7-7"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14m7-7l-7 7-7-7"/>
+        </svg>
       </button>
 
       <div class="composer">
@@ -79,19 +112,44 @@
         <div class="composer-row">
           <div id="moreWrap" class="relative">
             <button id="moreBtn" class="icon-button" aria-label="추가 옵션">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="1"/>
+                <circle cx="19" cy="12" r="1"/>
+                <circle cx="5" cy="12" r="1"/>
+              </svg>
             </button>
             <div id="fabDial" class="fab-dial" aria-label="빠른 작업 메뉴">
-              <button class="mini-fab" data-action="go-chat" data-href="{{ url_for('chat_page') }}" title="AI 챗봇 페이지로 이동" aria-label="AI 챗봇 페이지로 이동">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-5 4V7a2 2 0 0 1 2-2z"/></svg>
+              <button
+                class="mini-fab"
+                data-action="go-chat"
+                data-href="{{ url_for('chat_page') }}"
+                title="AI 챗봇 페이지로 이동"
+                aria-label="AI 챗봇 페이지로 이동"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 5h16a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-5 4V7a2 2 0 0 1 2-2z"/>
+                </svg>
                 <span class="fab-label" data-i18n="fabChatLabel">AI 챗봇</span>
               </button>
-              <button class="mini-fab" data-action="go-feed" data-href="{{ url_for('feed_page') }}" title="행사 피드 페이지로 이동" aria-label="행사 피드 페이지로 이동">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h6M7 16h8"/></svg>
+              <button
+                class="mini-fab"
+                data-action="go-feed"
+                data-href="{{ url_for('feed_page') }}"
+                title="행사 피드 페이지로 이동"
+                aria-label="행사 피드 페이지로 이동"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="2"/>
+                  <path d="M7 8h10M7 12h6M7 16h8"/>
+                </svg>
                 <span class="fab-label" data-i18n="fabFeedLabel">행사 피드</span>
               </button>
               <button class="mini-fab" data-action="toggle-language" title="언어 전환" aria-label="언어 전환">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14.5 14.5 0 0 1 4 9 14.5 14.5 0 0 1-4 9 14.5 14.5 0 0 1-4-9 14.5 14.5 0 0 1 4-9z"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="9"/>
+                  <path d="M3 12h18"/>
+                  <path d="M12 3a14.5 14.5 0 0 1 4 9 14.5 14.5 0 0 1-4 9 14.5 14.5 0 0 1-4-9 14.5 14.5 0 0 1 4-9z"/>
+                </svg>
                 <span class="fab-label" data-i18n="fabLanguageLabel">한/영</span>
               </button>
             </div>
@@ -102,7 +160,9 @@
             <span id="charCounter" class="char-counter">0/500</span>
           </div>
           <button id="send" class="send" data-compact="true" aria-label="메시지 전송">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.4-8.4c.5-.2.5-.9 0-1.2L3.4 2.4c-.5-.2-1 .2-1 .7v5.5c0 .3.2.6.5.6l8.6.9c.2 0 .2.2 0 .3l-8.6.9c-.3 0-.5.3-.5.6V19.7c0 .5.4 1 1 .7z"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3.4 20.4l17.4-8.4c.5-.2.5-.9 0-1.2L3.4 2.4c-.5-.2-1 .2-1 .7v5.5c0 .3.2.6.5.6l8.6.9c.2 0 .2.2 0 .3l-8.6.9c-.3 0-.5.3-.5.6V19.7c0 .5.4 1 1 .7z"/>
+            </svg>
             <span class="label" data-i18n="sendLabel">전송</span>
           </button>
         </div>
@@ -110,8 +170,10 @@
     </main>
   </div>
 
+  <!-- 🔧 JS도 모두 url_for로, http:// 절대 URL 사용 금지 -->
   <script type="module" src="{{ url_for('static', path='js/app-common.js') }}"></script>
   <script type="module" src="{{ url_for('static', path='js/app-chat.js') }}"></script>
+
   <script>
     (function updateDynamicViewHeight() {
       const root = document.documentElement;
