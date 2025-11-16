@@ -1,80 +1,85 @@
 import { initCommonUI, translations, getLang, handleSurfaceScroll, initFabDial } from './app-common.js';
 
 let currentLang = getLang();
-const chatList = document.getElementById('chatList');
-const input = document.getElementById('input');
-const send = document.getElementById('send');
-const chips = document.getElementById('chips');
-const chipLabel = document.getElementById('chipLabel');
-const charCounter = document.getElementById('charCounter');
-const inputHint = document.getElementById('inputHint');
-const scrollToBottom = document.getElementById('scrollToBottom');
-const composer = document.querySelector('.composer');
-const root = document.documentElement;
+const chatList = document.getElementById('chatList'); // 채팅 메시지 리스트
+const input = document.getElementById('input'); // 메시지 입력창
+const send = document.getElementById('send'); // 전송 버튼
+const chips = document.getElementById('chips'); // 아래 프리셋 칩 컨테이너 - 아래 이번 주말 추천 일정 어쩌구같은거
+const chipLabel = document.getElementById('chipLabel'); // 아래 프리셋 칩 라벨
+const charCounter = document.getElementById('charCounter'); // 입력 문자 수 카운터
+const scrollToBottom = document.getElementById('scrollToBottom'); // 스크롤 하단 이동 버튼
+const composer = document.querySelector('.composer'); // 입력창 컨테이너
+const root = document.documentElement; 
 const introBadge = document.getElementById('introBadge'); // 인트로 섹션 어시스턴트 배지
 const introText = document.getElementById('introText'); // 인트로 섹션 텍스트
+
+const inputHint = document.getElementById('inputHint'); // 쓸대없는거
+const introHint = document.getElementById('introHint'); // 쓸대없는거
+
 let chatHistory = []; // 대화 기록
 let typingEl = null; // 타이핑 중 표시 엘리먼트
 let lastScrollTop = 0; // 마지막 스크롤 위치
 
-initCommonUI({ page: 'chat' });
-initFabDial();
+initCommonUI({ page: 'chat' }); // 공통 UI 초기화
+initFabDial(); // 플로팅 액션 버튼 초기화
 
+// 입력창 높이에 따라 CSS 변수 업데이트
 function updateComposerHeight() {
   if (!composer || !root) return;
-  const height = composer.getBoundingClientRect().height || 0;
+  const height = composer.getBoundingClientRect().height || 0; // 입력창 컨테이너 높이 측정
   if (height > 0) {
-    root.style.setProperty('--composer-height', `${Math.ceil(height)}px`);
+    root.style.setProperty('--composer-height', `${Math.ceil(height)}px`); // CSS 변수 업데이트
   }
 }
 
-if (composer) {
-  updateComposerHeight();
-  if (typeof ResizeObserver !== 'undefined') {
-    const ro = new ResizeObserver(updateComposerHeight);
-    ro.observe(composer);
+if (composer) { 
+  updateComposerHeight() ;
+  if (typeof ResizeObserver !== 'undefined') { // ResizeObserver로 입력창 크기 변경 감지
+    const ro = new ResizeObserver(updateComposerHeight); // 리사이즈 옵저버 생성
+    ro.observe(composer); // 입력창 컨테이너 관찰 시작
   }
-  window.addEventListener('resize', updateComposerHeight);
+  window.addEventListener('resize', updateComposerHeight); // 윈도우 리사이즈 시에도 업데이트
 }
 
 /* ===== 유틸 ===== */
 function escapeHTML(str) {
   return String(str).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+  // 특수문자를 대응되는 HTML 엔티티로 변환
 }
-function trimText(value, limit = 600) {
+function trimText(value, limit = 600) { // 텍스트 자르기
   const raw = String(value ?? '').trim();
-  if (!raw) return '';
-  if (raw.length <= limit) return raw;
-  return `${raw.slice(0, limit)}…`;
+  if (!raw) return ''; 
+  if (raw.length <= limit) return raw; // 길이가 제한 이내인 경우 그대로 반환
+  return `${raw.slice(0, limit)}…`; // 제한 초과 시 자르고 말줄임표 추가
 }
-function formatDescription(value, limit = 600) {
-  const trimmed = trimText(value, limit);
+function formatDescription(value, limit = 600) { // 설명 텍스트 포맷팅
+  const trimmed = trimText(value, limit); // 텍스트 자르기
   if (!trimmed) return '';
-  return escapeHTML(trimmed).replace(/\n+/g, '<br/>');
+  return escapeHTML(trimmed).replace(/\n+/g, '<br/>'); // HTML 이스케이프 및 줄바꿈 변환
 }
-function formatMultiline(text) {
-  if (!text) return '';
-  return escapeHTML(String(text)).replace(/\n+/g, '<br/>');
+function formatMultiline(text) { // 여러 줄 텍스트 포맷팅
+  if (!text) return ''; 
+  return escapeHTML(String(text)).replace(/\n+/g, '<br/>'); // HTML 이스케이프 및 줄바꿈 변환
 }
-function escapeValue(value, fallback = '') {
+function escapeValue(value, fallback = '') { // 값 이스케이프 및 대체값 처리
   const raw = value ?? '';
-  const text = String(raw).trim();
-  if (!text) return fallback ? escapeHTML(fallback) : '';
-  return escapeHTML(text);
+  const text = String(raw).trim(); // null/undefined 방지
+  if (!text) return fallback ? escapeHTML(fallback) : ''; // 빈 문자열인 경우 대체값 사용
+  return escapeHTML(text); // 이스케이프된 값 반환
 }
-function formatCost(value, lang) {
+function formatCost(value, lang) { // 비용, 무료 표시 처리
   if (value === null || value === undefined) return '';
-  const trimmed = String(value).trim();
+  const trimmed = String(value).trim(); // null/undefined 방지
   if (!trimmed) return '';
-  if (['0', '무료', 'free'].includes(trimmed.toLowerCase())) {
+  if (['0', '무료', 'free'].includes(trimmed.toLowerCase())) { // 무료인 경우
     return escapeHTML(translations[lang].costFree);
   }
   return escapeHTML(trimmed);
 }
-function extractEvent(ev, lang, options = {}) {
+function extractEvent(ev, lang, options = {}) { //d이벤트 데이터 정리
   if (!ev || typeof ev !== 'object') return null;
-  const t = translations[lang];
-  const limit = options.descriptionLimit ?? 600;
+  const t = translations[lang]; // 언어별 번역 데이터
+  const limit = options.descriptionLimit ?? 600; // 설명 길이 제한
   return {
     title: escapeValue(ev.title, t.unknownTitle),
     schedule: escapeValue(ev.period || ev.date || ev.datetime),
@@ -86,10 +91,10 @@ function extractEvent(ev, lang, options = {}) {
     link: escapeValue(ev.url || '')
   };
 }
-function assistantHeaderHTML() {
+function assistantHeaderHTML() { // 어시스턴트 헤더 HTML 생성
   return `<div class="assistant-header"><div class="w-6 h-6 rounded-full" style="background:linear-gradient(90deg,#34D399,#06B6D4)"></div><span class="text-xs opacity-70 font-medium">${translations[currentLang].assistantBadge}</span></div>`;
 }
-function renderEventCard(ev, options = {}) {
+function renderEventCard(ev, options = {}) { //이벤트 카드 생성
   const lang = options.lang || currentLang;
   const t = translations[lang];
   if (!ev || Object.keys(ev).length === 0) {
@@ -118,14 +123,14 @@ function renderEventCard(ev, options = {}) {
 }
 
 /* ===== 채팅 UI ===== */
-function addBubble(role, html) {
+function addBubble(role, html) { // 채팅 버블 추가
   const row = document.createElement('div');
   row.className = 'flex ' + (role === 'user' ? 'justify-end' : 'justify-start');
   row.innerHTML = `<div class="bubble ${role}">${html}</div>`;
   chatList.appendChild(row);
   chatList.scrollTo({ top: chatList.scrollHeight, behavior: 'smooth' });
 }
-function showTyping() {
+function showTyping() { // 타이핑 중 표시
   hideTyping();
   const row = document.createElement('div');
   row.className = 'flex justify-start';
@@ -141,24 +146,24 @@ function showTyping() {
   chatList.appendChild(row);
   chatList.scrollTo({ top: chatList.scrollHeight, behavior: 'smooth' });
 }
-function hideTyping() {
+function hideTyping() { // 타이핑 중 표시 제거
   if (typingEl) { typingEl.remove(); typingEl = null; }
 }
 
-function updateCharCounter() {
+function updateCharCounter() { // 문자 수 카운터 업데이트
   const length = input.value.length;
   charCounter.textContent = `${length}/500`;
   if (length >= 450) charCounter.classList.add('warning');
   else charCounter.classList.remove('warning');
 }
-function updateSend() {
+function updateSend() { // 전송 버튼 상태 업데이트
   const hasText = input.value.trim().length > 0;
   send.setAttribute('data-compact', hasText ? 'false' : 'true');
   const labelEl = send.querySelector('.label');
   if (labelEl) labelEl.setAttribute('aria-hidden', hasText ? 'false' : 'true');
 }
 
-function handleScrollToBottom() {
+function handleScrollToBottom() { // 스크롤 하단 이동 버튼 처리
   const scrollTop = chatList.scrollTop;
   const scrollHeight = chatList.scrollHeight;
   const clientHeight = chatList.clientHeight;
@@ -179,7 +184,7 @@ input.addEventListener('keydown', (e) => {
 send.addEventListener('click', sendMessage);
 
 /* ===== 프리셋 칩 ===== */
-function renderChips() {
+function renderChips() { // 정해둔 추천 질문 렌더링
   chips.innerHTML = '';
   const presets = translations[currentLang].chips || [];
   presets.forEach((preset) => {
@@ -191,7 +196,7 @@ function renderChips() {
     chips.appendChild(btn);
   });
 }
-chips.addEventListener('click', (e) => {
+chips.addEventListener('click', (e) => { //클릭 시 자동 채움
   const btn = e.target.closest('.chip');
   if (!btn) return;
   input.value = btn.dataset.text || '';
@@ -253,7 +258,7 @@ async function sendMessage() {
   updateSend(); updateCharCounter(); showTyping();
 
   try {
-    const res = await fetch('/api/chat', {
+    const res = await fetch('/api/chat', { // 백엔드에 메시지 전송
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
