@@ -11,12 +11,11 @@ const inputHint = document.getElementById('inputHint');
 const scrollToBottom = document.getElementById('scrollToBottom');
 const composer = document.querySelector('.composer');
 const root = document.documentElement;
-const introBadge = document.getElementById('introBadge');
-const introText = document.getElementById('introText');
-const introHint = document.getElementById('introHint');
-let chatHistory = [];
-let typingEl = null;
-let lastScrollTop = 0;
+const introBadge = document.getElementById('introBadge'); // 인트로 섹션 어시스턴트 배지
+const introText = document.getElementById('introText'); // 인트로 섹션 텍스트
+let chatHistory = []; // 대화 기록
+let typingEl = null; // 타이핑 중 표시 엘리먼트
+let lastScrollTop = 0; // 마지막 스크롤 위치
 
 initCommonUI({ page: 'chat' });
 initFabDial();
