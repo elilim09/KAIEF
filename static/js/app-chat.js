@@ -176,7 +176,7 @@ scrollToBottom.addEventListener('click', () => chatList.scrollTo({ top: chatList
 
 input.addEventListener('input', () => { updateSend(); updateCharCounter(); });
 input.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { // Shift+Enter는 줄바꿈
     e.preventDefault();
     sendMessage();
   }
