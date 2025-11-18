@@ -6,7 +6,7 @@ import aiofiles
 import numpy as np
 import faiss
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse,JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from openai import AsyncOpenAI
@@ -58,6 +58,93 @@ faiss_index: Optional[faiss.Index] = None #FAISS 검색 인덱스
 # 세션별 대화 히스토리 저장용 메모리
 conversation_memory: Dict[str, List[Dict[str, str]]] = {} 
 MAX_MEMORY = 10 #세션당 최대 대화 기록 수
+async def translate_event_with_openai(event: dict) -> dict:
+    """행사 정보를 OpenAI를 사용해 영어로 번역"""
+    if not openai_client:
+        return {}
+
+    # 번역할 필드
+    title = event.get("title") or ""
+    place = event.get("place") or ""
+    host = event.get("host") or ""
+    period = event.get("period") or ""  # 번역 대상에 포함
+    # state는 번역 X
+
+    if not title and not place and not host and not period:
+        return {"id": event.get("id")}
+
+    system_prompt = """
+You are a helpful translation assistant.
+Translate the following JSON values from Korean to English.
+- Keep the JSON structure.
+- Provide only the translated JSON object, without any additional text or explanations.
+- If a field is empty or missing, keep it as an empty string.
+"""
+    user_content = json.dumps({
+        "title": title,
+        "place": place,
+        "host": host,
+        "period": period
+    }, ensure_ascii=False)
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_content}
+    ]
+
+    try:
+        resp = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            response_format={"type": "json_object"},
+            temperature=0.1,
+        )
+        translated_content = json.loads(resp.choices[0].message.content)
+        return {
+            "id": event.get("id"),
+            "title_en": translated_content.get("title", ""),
+            "place_en": translated_content.get("place", ""),
+            "host_en": translated_content.get("host", ""),
+            "period_en": translated_content.get("period", "")
+        }
+    except Exception as e:
+        print(f"Error translating event ID {event.get('id')}: {e}")
+        return {
+            "id": event.get("id"),
+            "title_en": "",
+            "place_en": "",
+            "host_en": "",
+            "period_en": ""
+        }
+
+
+@app.post("/api/translate-events")
+async def api_translate_events():
+    if not openai_client:
+        return JSONResponse(status_code=400, content={"message": "OpenAI API key is not configured."})
+
+    print("Starting event translation...")
+
+    translated_events = []
+
+    batch_size = 10  # 한 번에 10개씩 번역
+    for i in range(0, len(events_data), batch_size):
+        batch = events_data[i:i+batch_size]
+        tasks = [translate_event_with_openai(event) for event in batch]
+        results = await asyncio.gather(*tasks)
+
+        # 성공한 것만 추가
+        translated_events.extend([r for r in results if r and r.get("id") is not None])
+
+        print(f"Translated batch {i//batch_size + 1} ({len(translated_events)}/{len(events_data)})")
+        await asyncio.sleep(1.5)  # rate limit 방지 대기
+
+    # 저장
+    async with aiofiles.open(EVENTS_EN_JSON_PATH, mode="w", encoding="utf-8") as f:
+        await f.write(json.dumps(translated_events, indent=2, ensure_ascii=False))
+
+    print(f"Successfully translated and saved {len(translated_events)} events.")
+    return {"message": f"Successfully translated {len(translated_events)} events.", "path": EVENTS_EN_JSON_PATH}
 
 
 def compute_event_state(period: str) -> str: #이벤트 상태 계산
