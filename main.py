@@ -13,6 +13,8 @@ from openai import AsyncOpenAI
 from dotenv import load_dotenv
 from datetime import datetime
 from pathlib import Path
+from contextlib import asynccontextmanager
+import math
 
 # fastapi 웹 서버
 # Jinja2Templates, StaticFiles: HTML, 정적 파일(css, js) 처리
@@ -58,6 +60,21 @@ faiss_index: Optional[faiss.Index] = None #FAISS 검색 인덱스
 # 세션별 대화 히스토리 저장용 메모리
 conversation_memory: Dict[str, List[Dict[str, str]]] = {} 
 MAX_MEMORY = 10 #세션당 최대 대화 기록 수
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    """두 좌표 간의 직선 거리 계산 (단위: km)"""
+    if None in [lat1, lon1, lat2, lon2]:
+        return 9999.0  # 좌표가 없으면 아주 먼 거리로 설정
+    
+    radius = 6371  # 지구 반지름
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) ** 2 + \
+        math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * \
+        math.sin(dlon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return radius * c
+
 async def translate_event_with_openai(event: dict) -> dict:
     """행사 정보를 OpenAI를 사용해 영어로 번역"""
     if not openai_client:
@@ -117,8 +134,7 @@ Translate the following JSON values from Korean to English.
             "period_en": ""
         }
 
-
-@app.post("/api/translate-events")
+@app.post("/api/translate_events")
 async def api_translate_events():
     if not openai_client:
         return JSONResponse(status_code=400, content={"message": "OpenAI API key is not configured."})
@@ -386,54 +402,80 @@ async def feed_page(request: Request):
 # =========================
 # Chatbot Logic with RAG
 # =========================
-async def chatbot(message: str, chat_history: list = None, session_id: str = None) -> dict:
-    #RAG 기반 챗봇: 벡터 유사도 검색으로 관련 이벤트를 찾아 답변 생성
-    if not message:
-        return {"response": "메시지를 입력해주세요."}
+LOCATION_COORDS = {
+    "강남": {"lat": 37.4979, "lng": 127.0276},
+    "서울": {"lat": 37.5665, "lng": 126.9780},
+    "과천": {"lat": 37.4294, "lng": 126.9899},
+    "청주": {"lat": 36.6424, "lng": 127.4890},
+    "제주": {"lat": 33.4890, "lng": 126.4983},
+    "성남": {"lat": 37.4200, "lng": 127.1267},
+    "판교": {"lat": 37.3947, "lng": 127.1111}
+}
 
-    if not openai_client:
-        return {"response": "OpenAI API 키가 설정되어 있지 않습니다."}
+async def chatbot(message: str, chat_history: list = None, session_id: str = None, user_location: dict = None) -> dict:
+    # 1. 초기 설정 및 히스토리 방어 코드
+    if chat_history is None:
+        chat_history = []
+    
+    # 세션 기반 메모리 (전역 변수 conversation_memory가 있다고 가정)
+    # history 변수를 chat_history로 통일하거나 세션에서 가져와야 함
+    current_history = chat_history if not session_id else conversation_memory.get(session_id, [])
+        
+    base_lat = user_location.get('lat') if user_location else None
+    base_lng = user_location.get('lng') if user_location else None
+    target_area = "현재 위치"
 
-    # 세션별 대화 기록 관리
-    if session_id:
-        if session_id not in conversation_memory:
-            conversation_memory[session_id] = []
-        history = conversation_memory[session_id]
-    else:
-        history = chat_history or []
+    # 질문 내 지역명 확인
+    for area, coords in LOCATION_COORDS.items():
+        if area in message:
+            base_lat = coords['lat']
+            base_lng = coords['lng']
+            target_area = area
+            break
 
-    #RAG: 벡터 유사도 검색으로 관련 이벤트 찾기
-    similar_events = await search_similar_events(message, top_k=20)
+    # 2. RAG 검색 및 3. 데이터 정제 (작성하신 로직 유지)
+    similar_events = await search_similar_events(message, top_k=30)
+    refined_events = []
+    for e in similar_events:
+        dist = calculate_distance(base_lat, base_lng, e.get('lat'), e.get('lng')) if base_lat and e.get('lat') else None
+        refined_events.append({
+            "title": e.get("title", "제목 없음"),
+            "period": e.get("period") or "상설 전시 (일정 확인 필요)",
+            "place": e.get("place") or "상세 장소 확인 필요",
+            "host": e.get("host") or "기관 정보 없음",
+            "state": e.get("state") or "진행 중",
+            "distance_km": dist,
+            "url": e.get("url") or "#"
+        })
 
-    # compact_events 구성
-    compact_events = [
-        {
-            "id": e.get("id"),
-            "title": e.get("title"),
-            "period": e.get("period"),
-            "place": e.get("place"),
-            "host": e.get("host"),
-            "state": e.get("state"),
-            "url": e.get("url") or e.get("link") or "#",
-        }
-        for e in similar_events
-    ]
+    # 4. 거리순 정렬
+    if base_lat:
+        refined_events.sort(key=lambda x: (x['distance_km'] is None, x['distance_km']))
 
+    # 5. LLM에 전달할 컨텍스트 생성
+    # 상위 10개만 전달
+    context_events = refined_events[:10]
+    
     system_prompt = f"""
-You are an AI chatbot that recommends cultural events, exhibitions, and festivals in South Korea.
+    You are an AI chatbot that recommends cultural events, exhibitions, and festivals in South Korea.
 Your response MUST be in JSON format.
 The 'recommended_event' field must always be an array. Do NOT change the field structure.
 
+### Priority & Location Rules
+1. Location Extraction: Identify if the user mentioned a specific location (e.g., "Gangnam", "Pangyo", "Seoul").
+2. Priority: If a location is specified, prioritize events with the shortest 'distance_km' from that location.
+3. Distance Context: In the 'reason' field, if an event is very close to the requested location, mention its proximity.
+
 ### Conversation Rules
-# - MUST follow JSON format strictly
-# - NEVER change field names or structure
-# - NEVER break JSON structure
-# - Detect user's language (Korean or English) and respond accordingly
-# - Remove irrelevant content
-# - Include date, place, and host information
-# - Remember last 4 conversations and reflect context
-# - Today's date: {datetime.now().strftime('%Y-%m-%d')}
-# - If any field is missing, set it to "Unknown" (Korean: "알수없음")
+- MUST follow JSON format strictly
+- NEVER change field names or structure
+- NEVER break JSON structure
+- Detect user's language (Korean or English) and respond accordingly
+- Remove irrelevant content
+- Include date, place, and host information
+- Remember last 4 conversations and reflect context
+- Today's date: {datetime.now().strftime('%Y-%m-%d')}
+- If any field is missing, set it to "Unknown" (Korean: "알수없음")
 
 ### CRITICAL: Language Translation Rules
 - If user writes in KOREAN → respond in Korean (all fields in Korean)
@@ -444,100 +486,72 @@ The 'recommended_event' field must always be an array. Do NOT change the field s
   * state → translate to English ("예정"→"Scheduled", "진행중"→"Ongoing", "종료"→"Ended")
   * reason → provide in both languages
 
-Example 1 (Korean Input):
-User: 이번 주말에 갈 전시 추천해줘
+### Response Context
+The provided 'Retrieved events' are already sorted by distance from the user's requested location or current location. Use this order to provide the most relevant recommendations.
+
+Example (Location-specific):
+User: 강남역 근처 전시회 있어?
 Assistant:
 {{
   "response": {{
     "intent": "event_search",
     "recommended_event": [
         {{
-            "id": 101,
-            "title": "서울 현대미술 전시",
-            "place": "서울 시립미술관",
-            "host": "서울시",
-            "period": "2025-11-15~2025-11-20",
-            "state": "예정",
-            "url": "http://example.com/seoul-art-exhibit"
+            "id": 202,
+            "title": "강남 미디어아트전",
+            "place": "예술의전당 한가람미술관",
+            "host": "강남문화재단",
+            "period": "2026-01-01~2026-02-28",
+            "state": "진행중",
+            "url": "http://example.com/gangnam-art"
         }}
     ],
     "reason": {{
-        "ko": "이번 주말에 서울에서 진행되는 현대미술 전시입니다.",
-        "en": "A contemporary art exhibition in Seoul this weekend."
+        "ko": "강남역에서 매우 가까운 예술의전당에서 진행 중인 미디어아트 전시를 추천합니다.",
+        "en": "I recommend a media art exhibition at the Seoul Arts Center, which is very close to Gangnam Station."
     }}
   }}
 }}
 
-Example 2 (English Input):
-User: What exhibitions are available this weekend?
-Assistant:
-{{
-  "response": {{
-    "intent": "event_search",
-    "recommended_event": [
-        {{
-            "id": 101,
-            "title": "Seoul Contemporary Art Exhibition",
-            "place": "Seoul Museum of Art",
-            "host": "Seoul Metropolitan Government",
-            "period": "2025-11-15~2025-11-20",
-            "state": "Scheduled",
-            "url": "http://example.com/seoul-art-exhibit"
-        }}
-    ],
-    "reason": {{
-        "ko": "이번 주말에 서울에서 진행되는 현대미술 전시입니다.",
-        "en": "A contemporary art exhibition in Seoul this weekend."
-    }}
-  }}
-}}
-
-### Now respond to the user's question with the same JSON structure as shown in the examples above.
 Today's date: {datetime.now().strftime('%Y-%m-%d')}
-Retrieved events (via semantic search): {json.dumps(compact_events, ensure_ascii=False)}
-"""
+Retrieved events (via semantic search): {json.dumps(context_events, ensure_ascii=False)}
+    """
 
-    # messages 구성: system + 최근 4개 대화 + 사용자 입력
+    # 5. 메시지 구성 (System + 히스토리 + 현재 질문)
     messages = [{"role": "system", "content": system_prompt}]
-    for h in history[-4:]:
-        messages.append({"role": "assistant" if h["role"] == "assistant" else "user", "content": str(h["content"])})
+    # 6. OpenAI API 호출
+    for h in current_history[-4:]:
+        role = "assistant" if h.get("role") == "assistant" else "user"
+        messages.append({"role": role, "content": str(h.get("content", ""))})
+    
     messages.append({"role": "user", "content": str(message)})
 
+    # 6. API 호출 및 처리
     try:
         response = await openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
-            temperature=0.5, #창의성 조절
+            temperature=0.5,
+            response_format={"type": "json_object"}
         )
         reply = response.choices[0].message.content.strip()
 
-        # 히스토리 업데이트
+        # [수정포인트] 메모리 업데이트 시 변수명 불일치 해결
         if session_id:
-            history.append({"role": "user", "content": message})
-            history.append({"role": "assistant", "content": reply})
-            if len(history) > 16:
-                conversation_memory[session_id] = history[-16:]
+            current_history.append({"role": "user", "content": message})
+            current_history.append({"role": "assistant", "content": reply})
+            conversation_memory[session_id] = current_history[-16:]
 
-        # JSON 파싱
+        # 7. 응답 파싱
         try:
             json_reply = json.loads(reply)
-            return {"response": json_reply["response"]}
+            return {"response": json_reply.get("response", json_reply)}
         except Exception:
-            return {"response": {
-                "intent": "other",
-                "recommended_event": [],
-                "reason": {"ko": reply, "en": reply}
-            }}
+            return {"response": {"intent": "other", "reason": {"ko": reply}}}
 
     except Exception as e:
         print(f"[chatbot] Error: {e}")
-        return {"response": {
-            "intent": "other",
-            "recommended_event": [],
-            "reason": {"ko": "죄송합니다. 잠시 후 다시 시도해주세요.", "en": "Sorry, please try again later."}
-        }}
-
-
+        return {"response": {"intent": "error", "reason": {"ko": "오류 발생"}}}
 # =========================
 # API routes
 # =========================
@@ -546,7 +560,8 @@ async def api_chat(request: Request):
     data = await request.json()
     raw_message = (data.get("message") or "").strip() #사용자 메시지
     chat_history = data.get("chat_history", []) #대화 히스토리
-    return await chatbot(raw_message, chat_history)
+    user_location = data.get("location")
+    return await chatbot(raw_message, chat_history, user_location=user_location)
 
 
 @app.get("/events")

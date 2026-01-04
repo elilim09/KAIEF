@@ -245,7 +245,23 @@ function buildAssistantResponse(payload) {
 
   return html;
 }
-
+function getCurrentLocation() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      console.warn("Geolocation not supported");
+      resolve(null);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (err) => {
+        console.warn("Location access denied", err);
+        resolve(null);
+      },
+      { timeout: 10000 }
+    );
+  });
+}
 async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
@@ -253,7 +269,7 @@ async function sendMessage() {
 
   // 대화 기록에 유저 메시지 추가
   chatHistory.push({ role: 'user', content: text });
-
+  const location = await getCurrentLocation();
   input.value = '';
   updateSend(); updateCharCounter(); showTyping();
 
@@ -263,6 +279,7 @@ async function sendMessage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: text,
+        location: location,
         chat_history: chatHistory,
       })
     });
