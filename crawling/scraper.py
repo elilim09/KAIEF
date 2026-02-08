@@ -57,34 +57,39 @@ def get_kakao_coordinates(query):
 
 # ==========================================
 # 2. 문화포털 API 스크래퍼
-# ==========================================
 def scrape_culture_events_page():
     print("culture.go.kr API를 스크래핑하는 중...")
     service_key = "79058de8-e03d-4a28-af3d-d9f39db0d5e8"
-    xml_data = get_exhibition_data(service_key, num_of_rows=100)
-    if xml_data is None:
+    
+    try:
+        # 데이터 양이 많으면 서버가 힘들어할 수 있으니 100개 -> 50개 정도로 줄여보는 것도 방법입니다.
+        xml_data = get_exhibition_data(service_key, num_of_rows=50) 
+        if xml_data is None:
+            print("문화포털 API로부터 데이터를 받지 못했습니다. (건너뜀)")
+            return []
+
+        data = xml_to_dict(xml_data)
+        events = []
+        if data and 'body' in data and 'items' in data['body'] and 'item' in data['body']['items']:
+            items = data['body']['items']['item']
+            if isinstance(items, dict): items = [items]
+            
+            for item in items:
+                event = {
+                    'title': item.get('TITLE'),
+                    'period': item.get('PERIOD'),
+                    'place': item.get('EVENT_SITE'),
+                    'cost': item.get('CHARGE'),
+                    'image': item.get('IMAGE_OBJECT'),
+                    'url': item.get('URL'),
+                    'host': item.get('CNTC_INSTT_NM'),
+                    'state': '진행중'
+                }
+                events.append(event)
+        return events
+    except Exception as e:
+        print(f"문화포털 파싱 중 알 수 없는 오류 발생: {e}")
         return []
-
-    data = xml_to_dict(xml_data)
-    events = []
-    if data and 'body' in data and 'items' in data['body'] and 'item' in data['body']['items']:
-        items = data['body']['items']['item']
-        if isinstance(items, dict): items = [items]
-        
-        for item in items:
-            event = {
-                'title': item.get('TITLE'),
-                'period': item.get('PERIOD'),
-                'place': item.get('EVENT_SITE'),
-                'cost': item.get('CHARGE'),
-                'image': item.get('IMAGE_OBJECT'),
-                'url': item.get('URL'),
-                'host': item.get('CNTC_INSTT_NM'),
-                'state': '진행중'
-            }
-            events.append(event)
-    return events
-
 # ==========================================
 # 3. 메인 실행 제어 로직
 # ==========================================
