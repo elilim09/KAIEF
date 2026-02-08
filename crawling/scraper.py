@@ -1,10 +1,12 @@
 import json
 import os
+import sys
 import requests
 import time
 from datetime import datetime
 from dotenv import load_dotenv
-
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
 # 기존 스크래퍼 임포트
 from pages.seongnam import scrape_seongnam_events_page
 from pages.snyouth import scrape_snyouth_events_page
