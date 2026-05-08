@@ -3,7 +3,9 @@ import os
 import sys
 import requests
 import time
+import re
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
@@ -19,12 +21,16 @@ from pages.pangyomeseum import scrape_pangyomuseum_events_page
 from pages.pangyowelfare import scrape_pangyowelfare_events_page
 from pages.pangyonoin import scrape_pangyonoin_events_page
 from pages.culture import get_exhibition_data, xml_to_dict
+from pages.ggcf import scrape_ggcf_programs_page
+from pages.seoul import scrape_seoul_events_page
 from pages.tourapi import scrape_tourapi_events_page
 from event_normalizer import normalize_events
 
 # .env 파일에서 KAKAO_API_KEY 로드
 load_dotenv()
 KAKAO_API_KEY = os.getenv("KAKAO_API_KEY")
+APP_TIMEZONE = ZoneInfo(os.getenv("APP_TIMEZONE", "Asia/Seoul"))
+KAKAO_REQUEST_DELAY = float(os.getenv("KAKAO_REQUEST_DELAY", "0.03"))
 
 # ==========================================
 # 1. 좌표 변환 유틸리티 및 수동 데이터
@@ -58,6 +64,88 @@ def get_kakao_coordinates(query):
         print(f"API 호출 오류 ({query}): {e}")
     
     return None, None
+
+
+def parse_coord(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def parse_period_dates(period):
+    if not period:
+        return None, None
+
+    matches = re.findall(r"\d{4}-\d{1,2}-\d{1,2}|\d{8}", str(period))
+    dates = []
+    for value in matches[:2]:
+        try:
+            if "-" in value:
+                dates.append(datetime.strptime(value, "%Y-%m-%d").date())
+            else:
+                dates.append(datetime.strptime(value, "%Y%m%d").date())
+        except ValueError:
+            continue
+
+    if not dates:
+        return None, None
+    if len(dates) == 1:
+        return dates[0], dates[0]
+    return dates[0], dates[1]
+
+
+def is_active_current_year_event(event):
+    state = str(event.get("state") or "").strip()
+    if state in {"종료", "마감", "끝남", "ended", "closed", "finished"}:
+        return False
+
+    start_date, end_date = parse_period_dates(event.get("period") or "")
+    if not start_date or not end_date:
+        return False
+
+    today = datetime.now(APP_TIMEZONE).date()
+    year_start = today.replace(month=1, day=1)
+    year_end = today.replace(month=12, day=31)
+    return end_date >= today and start_date <= year_end and end_date >= year_start
+
+
+def dedupe_events(events):
+    deduped = []
+    seen = set()
+
+    for event in events:
+        title = re.sub(r"\s+", " ", str(event.get("title") or "")).strip().lower()
+        period = re.sub(r"\s+", "", str(event.get("period") or "")).strip()
+        place = re.sub(r"\s+", " ", str(event.get("place") or "")).strip().lower()
+        url = str(event.get("url") or "").strip()
+        source_id = str(event.get("source_id") or event.get("content_id") or "").strip()
+
+        key = (title, period, place) if title and period else (url or source_id or title, period, place)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(event)
+
+    return deduped
+
+
+def build_coordinate_queries(host, place):
+    ignored = {"기타", "문화포털", "한국관광공사", "서울문화포털", "상세 장소 확인 필요", "기관 정보 없음"}
+    host_text = re.sub(r"\s+", " ", str(host or "")).strip()
+    place_text = re.sub(r"\s+", " ", str(place or "")).strip()
+    has_host = len(host_text) >= 2 and host_text not in ignored
+    has_place = len(place_text) >= 2 and place_text not in ignored
+    queries = []
+
+    if has_place:
+        queries.append(place_text)
+    if has_host and has_place:
+        queries.append(f"{host_text} {place_text}")
+    if has_host:
+        queries.append(host_text)
+
+    return queries
 
 # ==========================================
 # 2. 문화포털 API 스크래퍼
@@ -104,7 +192,9 @@ def main():
     # 데이터 수집
     print("--- 각 사이트 데이터 수집 시작 ---")
     raw_events.extend(scrape_culture_events_page())
-    raw_events.extend(scrape_tourapi_events_page())
+    raw_events.extend(scrape_tourapi_events_page(num_rows=100, max_pages=5, detail_limit=80))
+    raw_events.extend(scrape_seoul_events_page())
+    raw_events.extend(scrape_ggcf_programs_page())
     
     page = 1
     while True:
@@ -129,16 +219,22 @@ def main():
     # ------------------------------------------
     exclude_keywords = ['[공지]', '[마감]', '[채용]', '<긴급', '안내', '휴관', '인터넷장애']
     normalized_events = normalize_events(raw_events)
-    all_events = [
+    filtered_events = [
         e for e in normalized_events
-        if e.get('title') and not any(k in e['title'] for k in exclude_keywords)
+        if (
+            e.get('title')
+            and not any(k in e['title'] for k in exclude_keywords)
+            and is_active_current_year_event(e)
+        )
     ]
+    all_events = dedupe_events(filtered_events)
     print(f"필터링 완료: {len(raw_events)}개 -> {len(all_events)}개")
 
     # ------------------------------------------
     # 좌표 추가 및 보정
     # ------------------------------------------
     print(f"\n--- 좌표 변환 시작 ({len(all_events)} 건) ---")
+    coordinate_cache = {}
     
     for i, event in enumerate(all_events):
         title = (event.get('title') or "").strip()
@@ -150,22 +246,26 @@ def main():
 
         place = (event.get('place') or "").strip()
         host = (event.get('host') or "").strip()
-        lat, lng = None, None
+        lat = parse_coord(event.get('lat'))
+        lng = parse_coord(event.get('lng'))
 
         # 1. 수동 매핑 사전 확인
-        for key, coords in MANUAL_MAPPING.items():
-            if key in title or key in place or key in host:
-                lat, lng = coords
-                break
+        if lat is None or lng is None:
+            for key, coords in MANUAL_MAPPING.items():
+                if key in title or key in place or key in host:
+                    lat, lng = coords
+                    break
 
         # 2. 카카오 API 검색 (수동 매핑 실패 시)
-        if lat is None:
-            # 전략: 호스트+장소 -> 장소 -> 호스트 순서로 시도
-            queries = [f"{host} {place}", place, host]
-            for q in queries:
-                if len(q) > 1:
-                    lat, lng = get_kakao_coordinates(q)
-                    if lat: break
+        if lat is None or lng is None:
+            # 전략: 장소 -> 호스트+장소 -> 호스트 순서로 시도. 같은 장소는 API를 반복 호출하지 않는다.
+            for q in build_coordinate_queries(host, place):
+                if q not in coordinate_cache:
+                    coordinate_cache[q] = get_kakao_coordinates(q)
+                    time.sleep(KAKAO_REQUEST_DELAY)
+                lat, lng = coordinate_cache[q]
+                if lat is not None and lng is not None:
+                    break
 
         event['lat'] = lat
         event['lng'] = lng
@@ -176,8 +276,6 @@ def main():
         if (i + 1) % 20 == 0:
             print(f"진행 상황: {i + 1}/{len(all_events)} 건 처리 완료...")
         
-        time.sleep(0.1)
-
     # 최종 저장
     with open("events.json", "w", encoding="utf-8") as f:
         json.dump(all_events, f, ensure_ascii=False, indent=4)

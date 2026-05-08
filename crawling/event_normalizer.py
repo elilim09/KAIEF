@@ -26,7 +26,7 @@ def clean_text(value: Any) -> str:
         return ""
     if isinstance(value, (list, tuple)):
         value = " ".join(clean_text(item) for item in value)
-    return re.sub(r"[ \t\r\f\v]+", " ", str(value)).strip()
+    return re.sub(r"\s+", " ", str(value)).strip()
 
 
 def clean_multiline(value: Any) -> str:

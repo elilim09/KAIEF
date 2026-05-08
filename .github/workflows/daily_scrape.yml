@@ -32,6 +32,7 @@ jobs:
           # (Settings -> Secrets and variables -> Actions에 등록 필요)
           KAKAO_API_KEY: ${{ secrets.KAKAO_API_KEY }}
           KTO_TOUR_API_KEY: ${{ secrets.KTO_TOUR_API_KEY }}
+          SEOUL_OPEN_API_KEY: ${{ secrets.SEOUL_OPEN_API_KEY }}
         run: python crawling/scraper.py
 
       - name: Commit and Push changes
