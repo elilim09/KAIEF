@@ -39,6 +39,7 @@ export const translations = {
     feedSortRecent: "최신순",
     feedSortTitle: "제목순",
     feedLoading: "행사 데이터를 불러오는 중이에요...",
+    feedTranslating: "행사 정보를 영어로 번역하는 중이에요...",
     feedEmpty: "현재 조건에 맞는 행사가 없습니다.",
     feedEmptyDesc: "필터를 변경하거나 나중에 다시 확인해주세요.",
     feedError: "행사 데이터를 불러오지 못했어요.",
@@ -52,7 +53,7 @@ export const translations = {
     feedScrollTop: "최상단으로 이동",
     inputHint: "Enter로 전송 · Shift+Enter로 줄바꿈",
     scrollToBottom: "최신 메시지로 이동",
-    actions: { viewDetail: "자세히 보기" },
+    actions: { viewDetail: "자세히 보기", openMap: "이동" },
     eventLabels: { category: "분류", schedule: "일정", location: "장소", host: "주관", status: "상태", cost: "참가비" },
     costFree: "무료",
     unknownTitle: "제목 미상",
@@ -100,6 +101,7 @@ export const translations = {
     feedSortRecent: "Newest first",
     feedSortTitle: "Title A-Z",
     feedLoading: "Loading event data...",
+    feedTranslating: "Translating event information...",
     feedEmpty: "No events match the current filter.",
     feedEmptyDesc: "Try another option or check back later.",
     feedError: "Unable to load event data right now.",
@@ -113,7 +115,7 @@ export const translations = {
     feedScrollTop: "Back to top",
     inputHint: "Enter to send · Shift+Enter for new line",
     scrollToBottom: "Scroll to latest",
-    actions: { viewDetail: "View details" },
+    actions: { viewDetail: "View details", openMap: "Directions" },
     eventLabels: { category: "Category", schedule: "Schedule", location: "Location", host: "Organizer", status: "Status", cost: "Admission" },
     costFree: "Free",
     unknownTitle: "Untitled event",
@@ -129,13 +131,45 @@ export const translations = {
 
 let currentLang = localStorage.getItem(STORAGE_KEYS.lang) === 'en' ? 'en' : 'ko';
 let currentSeed = localStorage.getItem(STORAGE_KEYS.seed) || '#6366F1';
+let langTransitionTimer = null;
+let langTransitionFinishTimer = null;
 
 export const getLang = () => currentLang;
-export const setLang = (lang) => {
-  currentLang = lang === 'en' ? 'en' : 'ko';
-  localStorage.setItem(STORAGE_KEYS.lang, currentLang);
-  applyI18n();
-  window.dispatchEvent(new CustomEvent('kaief:lang', { detail: { lang: currentLang } }));
+export const setLang = (lang, options = {}) => {
+  const nextLang = lang === 'en' ? 'en' : 'ko';
+  if (nextLang === currentLang) return;
+
+  const animated = options.animated !== false && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const root = document.documentElement;
+
+  const commitLanguage = () => {
+    currentLang = nextLang;
+    root.setAttribute('data-lang', currentLang);
+    root.setAttribute('data-lang-transition', animated ? 'in' : '');
+    if (!animated) root.removeAttribute('data-lang-transition');
+
+    localStorage.setItem(STORAGE_KEYS.lang, currentLang);
+    applyI18n();
+    window.dispatchEvent(new CustomEvent('kaief:lang', { detail: { lang: currentLang } }));
+
+    if (animated) {
+      clearTimeout(langTransitionFinishTimer);
+      langTransitionFinishTimer = setTimeout(() => {
+        root.removeAttribute('data-lang-transition');
+      }, 190);
+    }
+  };
+
+  clearTimeout(langTransitionTimer);
+  clearTimeout(langTransitionFinishTimer);
+
+  if (!animated) {
+    commitLanguage();
+    return;
+  }
+
+  root.setAttribute('data-lang-transition', 'out');
+  langTransitionTimer = setTimeout(commitLanguage, 95);
 };
 
 export function initFabDial({ triggerId = 'moreBtn', wrapId = 'moreWrap', dialId = 'fabDial' } = {}) {
@@ -221,6 +255,7 @@ function applyI18n() {
   const t = translations[currentLang];
   document.title = t.documentTitle;
   document.documentElement.lang = currentLang === 'ko' ? 'ko' : 'en';
+  document.documentElement.setAttribute('data-lang', currentLang);
   document.querySelectorAll('[data-i18n]').forEach((el) => {
     const key = el.dataset.i18n;
     if (t[key]) el.textContent = t[key];

@@ -18,6 +18,7 @@ const root = document.documentElement;
 
 let feedLoaded = false;
 let cachedEvents = [];
+const cachedEventsByLang = { ko: null, en: null };
 let activeFeedFilter = 'all';
 let activeSort = feedSortSelect?.value || 'recent';
 let activeSearchTerm = '';
@@ -190,6 +191,25 @@ function formatCost(value, lang) {
   }
   return escapeHTML(trimmed);
 }
+function isValidHttpUrl(value) {
+  try {
+    const url = new URL(String(value || '').trim());
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+function parseCoordinate(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+function createMapUrl(ev, data) {
+  const lat = parseCoordinate(ev.lat);
+  const lng = parseCoordinate(ev.lng);
+  if (lat === null || lng === null) return '';
+  const label = data.location || data.title || '';
+  return `https://map.kakao.com/link/to/${encodeURIComponent(label)},${lat},${lng}`;
+}
 function extractEvent(ev, lang, options = {}) {
   if (!ev || typeof ev !== 'object') return null;
   const t = translations[lang];
@@ -215,7 +235,7 @@ function extractEvent(ev, lang, options = {}) {
   }
 
   // 링크 처리
-  const link = ev.url ?? ev.link ?? '';
+  const rawLink = ev.url ?? ev.link ?? '';
 
   return {
     title: escapeValue(title, t.unknownTitle),
@@ -224,7 +244,7 @@ function extractEvent(ev, lang, options = {}) {
     host: escapeValue(host),
     status: escapeValue(status),
     cost: formatCost(ev.cost, lang),
-    link: escapeValue(link)
+    link: isValidHttpUrl(rawLink) ? escapeValue(rawLink) : ''
   };
 }
 
@@ -272,6 +292,8 @@ function createFeedCard(ev) {
   }
 
   if (data.link) footerSegments.push(`<a href="${data.link}" target="_blank" rel="noopener">${t.actions.viewDetail}</a>`);
+  const mapUrl = createMapUrl(ev, data);
+  if (mapUrl) footerSegments.push(`<a href="${mapUrl}" target="_blank" rel="noopener">${t.actions.openMap}</a>`);
   const footerHTML = footerSegments.length ? `<div class="feed-footer">${footerSegments.join('')}</div>` : '';
 
   card.innerHTML = `
@@ -453,11 +475,15 @@ function renderFeed() {
 
 async function ensureFeed(forceReload = false) {
   const t = translations[currentLang];
-  if (feedLoaded && !forceReload) {
+  if (!forceReload && cachedEventsByLang[currentLang]) {
+    cachedEvents = cachedEventsByLang[currentLang];
+    feedLoaded = true;
     renderFeed();
     return;
   }
-  feedMessage.textContent = t.feedLoading;
+  feedMessage.textContent = currentLang === 'en'
+    ? (t.feedTranslating || t.feedLoading)
+    : t.feedLoading;
   showFeedSkeleton();
   try {
     // ✅ 언어별 events 파일 로드
@@ -465,6 +491,7 @@ async function ensureFeed(forceReload = false) {
     const res = await fetch(endpoint);
     const data = await res.json();
     cachedEvents = Array.isArray(data.events) ? data.events : [];
+    cachedEventsByLang[currentLang] = cachedEvents;
     feedLoaded = true;
     renderFeed();
   } catch (err) {
@@ -534,7 +561,7 @@ window.addEventListener('kaief:lang', (ev) => {
   renderSortControl();
   updateSearchLocalization();
   updateSearchUI();
-  ensureFeed(true); // ✅ 언어 변경 시 다시 불러오기
+  ensureFeed(false);
   updateFloatingHeight();
 });
 

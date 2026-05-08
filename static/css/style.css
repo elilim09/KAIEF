@@ -110,6 +110,23 @@ body {
 
 .app { width: min(430px, 100vw); min-height: 100dvh; margin: 0 auto; position: relative; }
 
+html[data-lang-transition] .app {
+  pointer-events: none;
+}
+html[data-lang-transition="out"] .app {
+  opacity: .72;
+  filter: blur(.7px);
+  transform: translateY(2px);
+  transition: opacity 95ms var(--easing-standard), filter 95ms var(--easing-standard), transform 95ms var(--easing-standard);
+}
+html[data-lang-transition="in"] .app {
+  animation: langSettle 190ms var(--easing-emphasized) both;
+}
+@keyframes langSettle {
+  from { opacity: .72; filter: blur(.7px); transform: translateY(2px); }
+  to { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+
 .app-bar { position: sticky; top: 0; z-index: 30; background: var(--md-sys-color-surface); backdrop-filter: saturate(1.3) blur(10px); border-bottom: 1px solid var(--md-sys-color-outline-variant); transition: padding var(--dur-standard) var(--easing-emphasized), box-shadow var(--dur-standard) var(--easing-standard); padding: 18px 20px 12px; }
 .app-bar.compact { padding: 8px 16px; box-shadow: var(--elevation-1); }
 .brand { display:flex; align-items:center; gap:12px; }

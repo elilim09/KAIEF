@@ -19,6 +19,8 @@ from pages.pangyomeseum import scrape_pangyomuseum_events_page
 from pages.pangyowelfare import scrape_pangyowelfare_events_page
 from pages.pangyonoin import scrape_pangyonoin_events_page
 from pages.culture import get_exhibition_data, xml_to_dict
+from pages.tourapi import scrape_tourapi_events_page
+from event_normalizer import normalize_events
 
 # .env 파일에서 KAKAO_API_KEY 로드
 load_dotenv()
@@ -85,6 +87,7 @@ def scrape_culture_events_page():
                     'image': item.get('IMAGE_OBJECT'),
                     'url': item.get('URL'),
                     'host': item.get('CNTC_INSTT_NM'),
+                    'source': '문화포털',
                     'state': '진행중'
                 }
                 events.append(event)
@@ -101,6 +104,7 @@ def main():
     # 데이터 수집
     print("--- 각 사이트 데이터 수집 시작 ---")
     raw_events.extend(scrape_culture_events_page())
+    raw_events.extend(scrape_tourapi_events_page())
     
     page = 1
     while True:
@@ -124,8 +128,9 @@ def main():
     # 데이터 필터링 (공지/마감 제거)
     # ------------------------------------------
     exclude_keywords = ['[공지]', '[마감]', '[채용]', '<긴급', '안내', '휴관', '인터넷장애']
+    normalized_events = normalize_events(raw_events)
     all_events = [
-        e for e in raw_events 
+        e for e in normalized_events
         if e.get('title') and not any(k in e['title'] for k in exclude_keywords)
     ]
     print(f"필터링 완료: {len(raw_events)}개 -> {len(all_events)}개")

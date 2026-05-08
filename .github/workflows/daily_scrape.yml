@@ -2,7 +2,7 @@ name: Daily Event Scraper
 
 on:
   schedule:
-    - cron: '18 18 * * *' # UTC 18:18 (한국시간 오전 03:18)
+    - cron: '0 3 * * *' # UTC 03:00 (한국시간 12:00)
   workflow_dispatch: # 수동으로도 실행 가능하게 버튼 활성화
 
 jobs:
@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
@@ -31,6 +31,7 @@ jobs:
           # GitHub Secrets에 등록한 API 키를 가져옵니다.
           # (Settings -> Secrets and variables -> Actions에 등록 필요)
           KAKAO_API_KEY: ${{ secrets.KAKAO_API_KEY }}
+          KTO_TOUR_API_KEY: ${{ secrets.KTO_TOUR_API_KEY }}
         run: python crawling/scraper.py
 
       - name: Commit and Push changes
@@ -39,5 +40,5 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add events.json
           # 변경사항이 있을 때만 커밋
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update events.json [$(date +'%Y-%m-%d %H:%M:%S')]")
+          git diff --cached --quiet || git commit -m "Update events.json [$(date +'%Y-%m-%d %H:%M:%S')]"
           git push

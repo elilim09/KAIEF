@@ -19,6 +19,8 @@ const introHint = document.getElementById('introHint'); // 쓸대없는거
 let chatHistory = []; // 대화 기록
 let typingEl = null; // 타이핑 중 표시 엘리먼트
 let lastScrollTop = 0; // 마지막 스크롤 위치
+let cachedLocation = null; // 최근 위치 캐시
+let locationRequest = null; // 진행 중인 위치 요청
 
 initCommonUI({ page: 'chat' }); // 공통 UI 초기화
 initFabDial(); // 플로팅 액션 버튼 초기화
@@ -76,6 +78,25 @@ function formatCost(value, lang) { // 비용, 무료 표시 처리
   }
   return escapeHTML(trimmed);
 }
+function isValidHttpUrl(value) {
+  try {
+    const url = new URL(String(value || '').trim());
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+function parseCoordinate(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+function createMapUrl(ev, data) {
+  const lat = parseCoordinate(ev.lat);
+  const lng = parseCoordinate(ev.lng);
+  if (lat === null || lng === null) return '';
+  const label = data.location || data.title || '';
+  return `https://map.kakao.com/link/to/${encodeURIComponent(label)},${lat},${lng}`;
+}
 function extractEvent(ev, lang, options = {}) { //d이벤트 데이터 정리
   if (!ev || typeof ev !== 'object') return null;
   const t = translations[lang]; // 언어별 번역 데이터
@@ -88,7 +109,7 @@ function extractEvent(ev, lang, options = {}) { //d이벤트 데이터 정리
     status: escapeValue(ev.state || ev.status),
     cost: formatCost(ev.cost, lang),
     description: formatDescription(ev.deep_data || ev.description || ev.overview || '', limit),
-    link: escapeValue(ev.url || '')
+    link: isValidHttpUrl(ev.url) ? escapeValue(ev.url) : ''
   };
 }
 function assistantHeaderHTML() { // 어시스턴트 헤더 HTML 생성
@@ -110,14 +131,21 @@ function renderEventCard(ev, options = {}) { //이벤트 카드 생성
   if (data.host) metaParts.push(`🏢 ${t.eventLabels.host}: ${data.host}`);
   if (data.status) metaParts.push(`📌 ${t.eventLabels.status}: ${data.status}`);
   if (data.cost) metaParts.push(`💰 ${t.eventLabels.cost}: ${data.cost}`);
-  const link = options.showLink && data.link ? `<a href="${data.link}" target="_blank" rel="noopener">${t.actions.viewDetail}</a>` : '';
+  const actions = [];
+  if (options.showLink && data.link) {
+    actions.push(`<a href="${data.link}" target="_blank" rel="noopener">${t.actions.viewDetail}</a>`);
+  }
+  const mapUrl = createMapUrl(ev, data);
+  if (mapUrl) {
+    actions.push(`<a href="${mapUrl}" target="_blank" rel="noopener">${t.actions.openMap}</a>`);
+  }
   return `
     <div class="${options.wrapperClass || 'mt-2 p-3 rounded-[16px] border border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface-container-low)] shadow-sm'}">
       <div class="text-base font-semibold mb-1" style="letter-spacing:-0.01em">${data.title}</div>
       ${infoParts.length ? `<div class="flex flex-wrap gap-x-3 gap-y-1 text-sm opacity-80">${infoParts.map((p) => `<div>${p}</div>`).join('')}</div>` : ''}
       ${metaParts.length ? `<div class="flex flex-wrap gap-x-3 gap-y-1 text-xs mt-3 opacity-70">${metaParts.map((p) => `<div>${p}</div>`).join('')}</div>` : ''}
       ${data.description ? `<div class="mt-3 text-sm leading-6">${data.description}</div>` : ''}
-      ${link ? `<div class="mt-3 text-sm font-semibold">${link}</div>` : ''}
+      ${actions.length ? `<div class="mt-3 text-sm font-semibold flex flex-wrap gap-3">${actions.join('')}</div>` : ''}
     </div>
   `;
 }
@@ -258,20 +286,44 @@ function getCurrentLocation() {
         console.warn("Location access denied", err);
         resolve(null);
       },
-      { timeout: 10000 }
+      { timeout: 5000, maximumAge: 300000 }
     );
   });
 }
+
+function refreshCurrentLocation() {
+  if (locationRequest) return locationRequest;
+  locationRequest = getCurrentLocation()
+    .then((location) => {
+      if (location) cachedLocation = location;
+      return cachedLocation;
+    })
+    .finally(() => {
+      locationRequest = null;
+    });
+  return locationRequest;
+}
+
+if (navigator.permissions?.query) {
+  navigator.permissions.query({ name: 'geolocation' })
+    .then((status) => {
+      if (status.state === 'granted') refreshCurrentLocation();
+    })
+    .catch(() => {});
+}
+
 async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
   addBubble('user', escapeHTML(text));
-
-  // 대화 기록에 유저 메시지 추가
-  chatHistory.push({ role: 'user', content: text });
-  const location = await getCurrentLocation();
   input.value = '';
   updateSend(); updateCharCounter(); showTyping();
+
+  // 대화 기록에 유저 메시지 추가
+  const previousHistory = chatHistory.slice();
+  chatHistory.push({ role: 'user', content: text });
+  const location = cachedLocation;
+  refreshCurrentLocation();
 
   try {
     const res = await fetch('/api/chat', { // 백엔드에 메시지 전송
@@ -280,7 +332,7 @@ async function sendMessage() {
       body: JSON.stringify({
         message: text,
         location: location,
-        chat_history: chatHistory,
+        chat_history: previousHistory,
       })
     });
 
