@@ -1,0 +1,35 @@
+services:
+  kaief:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hwanghj09/kaief:latest
+    container_name: kaief
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      PORT: 8000
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Seoul}
+      DAILY_REFRESH_HOUR: ${DAILY_REFRESH_HOUR:-12}
+      DAILY_REFRESH_MINUTE: ${DAILY_REFRESH_MINUTE:-0}
+      DAILY_REFRESH_ENABLED: ${DAILY_REFRESH_ENABLED:-true}
+      STARTUP_CRAWL: ${STARTUP_CRAWL:-false}
+      SCHEDULED_CRAWL: ${SCHEDULED_CRAWL:-true}
+      BUILD_VECTOR_ON_REFRESH: ${BUILD_VECTOR_ON_REFRESH:-false}
+      KAKAO_REQUEST_DELAY: ${KAKAO_REQUEST_DELAY:-0.03}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      KAKAO_API_KEY: ${KAKAO_API_KEY:-}
+      KTO_TOUR_API_KEY: ${KTO_TOUR_API_KEY:-}
+      TOUR_API_KEY: ${TOUR_API_KEY:-}
+      DATA_GO_KR_SERVICE_KEY: ${DATA_GO_KR_SERVICE_KEY:-}
+      SEOUL_OPEN_API_KEY: ${SEOUL_OPEN_API_KEY:-}
+      SEOUL_API_KEY: ${SEOUL_API_KEY:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3

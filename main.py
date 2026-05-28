@@ -52,6 +52,14 @@ translation_lock = asyncio.Lock()
 APP_TIMEZONE = ZoneInfo(os.getenv("APP_TIMEZONE", "Asia/Seoul"))
 DAILY_REFRESH_HOUR = int(os.getenv("DAILY_REFRESH_HOUR", "12"))
 DAILY_REFRESH_MINUTE = int(os.getenv("DAILY_REFRESH_MINUTE", "0"))
+STARTUP_CRAWL = os.getenv("STARTUP_CRAWL", "false").strip().lower() in {"1", "true", "yes", "on"}
+BUILD_VECTOR_ON_REFRESH = (
+    os.getenv("BUILD_VECTOR_ON_REFRESH", "false").strip().lower() in {"1", "true", "yes", "on"}
+)
+DAILY_REFRESH_ENABLED = (
+    os.getenv("DAILY_REFRESH_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
+)
+SCHEDULED_CRAWL = os.getenv("SCHEDULED_CRAWL", "true").strip().lower() in {"1", "true", "yes", "on"}
 
 # OPENAI_API_KEY가 없으면 None으로 설정
 openai_client: Optional[AsyncOpenAI] = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
@@ -567,14 +575,20 @@ async def refresh_event_pipeline(reason: str, crawl_first: bool = True):
                 print("[refresh] Crawling finished")
 
             await load_events_from_disk()
-            await build_vector_database()
+            if BUILD_VECTOR_ON_REFRESH:
+                await build_vector_database()
+            else:
+                print("[refresh] Vector database build skipped")
             print(f"[refresh] Finished ({reason})")
         except Exception as e:
             print(f"[refresh] Failed ({reason}): {e}")
             if not events_data and EVENTS_JSON_PATH.exists():
                 try:
                     await load_events_from_disk()
-                    await build_vector_database()
+                    if BUILD_VECTOR_ON_REFRESH:
+                        await build_vector_database()
+                    else:
+                        print("[refresh] Vector database build skipped")
                     print("[refresh] Fallback loaded existing events.json")
                 except Exception as fallback_error:
                     print(f"[refresh] Fallback failed: {fallback_error}")
@@ -600,7 +614,7 @@ async def daily_refresh_loop():
         print(f"[scheduler] Next refresh: {target.isoformat()}")
         try:
             await asyncio.sleep(wait_seconds)
-            await refresh_event_pipeline("scheduled", crawl_first=True)
+            await refresh_event_pipeline("scheduled", crawl_first=SCHEDULED_CRAWL)
         except asyncio.CancelledError:
             raise
         except Exception as e:
@@ -610,8 +624,9 @@ async def daily_refresh_loop():
 
 @app.on_event("startup")
 async def startup_event_refresh():
-    await refresh_event_pipeline("startup", crawl_first=True)
-    app.state.daily_refresh_task = asyncio.create_task(daily_refresh_loop())
+    await refresh_event_pipeline("startup", crawl_first=STARTUP_CRAWL)
+    if DAILY_REFRESH_ENABLED:
+        app.state.daily_refresh_task = asyncio.create_task(daily_refresh_loop())
 
 
 @app.on_event("shutdown")
